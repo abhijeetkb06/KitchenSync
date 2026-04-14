@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient
-        android:startColor="@color/role_manager_start"
-        android:endColor="@color/role_manager_end"
+        android:startColor="@color/role_store_mgr_start"
+        android:endColor="@color/role_store_mgr_end"
         android:angle="135" />
     <corners android:radius="@dimen/card_corner_radius" />
 </shape>

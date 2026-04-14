@@ -103,7 +103,7 @@ public class PeerListAdapter extends RecyclerView.Adapter<PeerListAdapter.ViewHo
 
         int statusColor = peer.isOnline
                 ? ContextCompat.getColor(holder.itemView.getContext(), R.color.success_green)
-                : ContextCompat.getColor(holder.itemView.getContext(), R.color.status_served);
+                : ContextCompat.getColor(holder.itemView.getContext(), R.color.status_picked_up);
         holder.status.setTextColor(statusColor);
 
         // Indicator color

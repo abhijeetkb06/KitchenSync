@@ -29,15 +29,19 @@ import com.yumkitchen.sync.data.repository.OrderRepository;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnItemClickListener,
         CartAdapter.OnCartChangeListener {
+
+    private static final AtomicInteger orderCounter = new AtomicInteger(0);
+    private static boolean counterInitialized = false;
 
     private MenuItemAdapter menuAdapter;
     private CartAdapter cartAdapter;
     private MaterialCardView cardCart;
     private TextView textTotal;
-    private TextInputEditText editTableNumber;
+    private TextInputEditText editCustomerName;
     private final MenuRepository menuRepo = new MenuRepository();
     private final OrderRepository orderRepo = new OrderRepository();
 
@@ -51,10 +55,19 @@ public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnIt
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        initOrderCounter();
         setupMenuGrid(view);
         setupCart(view);
         setupCategoryFilter(view);
         loadMenu(null);
+    }
+
+    private void initOrderCounter() {
+        if (!counterInitialized) {
+            int max = orderRepo.getMaxOrderNumber();
+            orderCounter.set(max + 1);
+            counterInitialized = true;
+        }
     }
 
     private void setupMenuGrid(View view) {
@@ -67,7 +80,7 @@ public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnIt
     private void setupCart(View view) {
         cardCart = view.findViewById(R.id.card_cart);
         textTotal = view.findViewById(R.id.text_total);
-        editTableNumber = view.findViewById(R.id.edit_table_number);
+        editCustomerName = view.findViewById(R.id.edit_customer_name);
 
         RecyclerView recyclerCart = view.findViewById(R.id.recycler_cart);
         cartAdapter = new CartAdapter(this);
@@ -82,10 +95,10 @@ public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnIt
         ChipGroup chipGroup = view.findViewById(R.id.chip_group_categories);
         chipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             String category = null;
-            if (checkedIds.contains(R.id.chip_mains)) category = "Mains";
+            if (checkedIds.contains(R.id.chip_tacos)) category = "Tacos";
+            else if (checkedIds.contains(R.id.chip_burritos)) category = "Burritos";
             else if (checkedIds.contains(R.id.chip_sides)) category = "Sides";
             else if (checkedIds.contains(R.id.chip_drinks)) category = "Drinks";
-            else if (checkedIds.contains(R.id.chip_desserts)) category = "Desserts";
             loadMenu(category);
         });
     }
@@ -129,29 +142,54 @@ public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnIt
             return;
         }
 
-        String tableStr = editTableNumber.getText() != null
-                ? editTableNumber.getText().toString().trim() : "";
-        if (tableStr.isEmpty()) {
-            editTableNumber.setError("Required");
+        String customerName = editCustomerName.getText() != null
+                ? editCustomerName.getText().toString().trim() : "";
+        if (customerName.isEmpty()) {
+            editCustomerName.setError("Required");
             return;
         }
 
-        int tableNumber;
-        try {
-            tableNumber = Integer.parseInt(tableStr);
-        } catch (NumberFormatException e) {
-            editTableNumber.setError("Invalid number");
-            return;
+        // Check if there's already an open order for this customer
+        Order existingOrder = orderRepo.findOpenOrderByCustomerName(customerName);
+        if (existingOrder != null) {
+            showAppendConfirmDialog(existingOrder, customerName);
+        } else {
+            // Refresh counter from DB to account for orders synced from other kiosks
+            int currentMax = orderRepo.getMaxOrderNumber();
+            if (currentMax >= orderCounter.get()) {
+                orderCounter.set(currentMax + 1);
+            }
+            int orderNumber = orderCounter.getAndIncrement();
+            showConfirmDialog(orderNumber, customerName);
         }
-
-        // Show confirmation dialog
-        showConfirmDialog(tableNumber);
     }
 
-    private void showConfirmDialog(int tableNumber) {
+    private void showAppendConfirmDialog(Order existingOrder, String customerName) {
         List<OrderItem> items = cartAdapter.getItems();
         StringBuilder sb = new StringBuilder();
-        sb.append("Table ").append(tableNumber).append("\n\n");
+        sb.append("Add to existing ").append(existingOrder.getDisplayLabel()).append("?\n\n");
+        sb.append("New items:\n");
+        for (OrderItem item : items) {
+            sb.append(item.getQuantity()).append("x ").append(item.getName())
+                    .append(" - $").append(String.format(Locale.US, "%.2f", item.getLineTotal()))
+                    .append("\n");
+        }
+        sb.append("\nNew items total: $").append(String.format(Locale.US, "%.2f", cartAdapter.getTotal()));
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Add to Order " + existingOrder.getDisplayLabel() + "?")
+                .setMessage(sb.toString())
+                .setPositiveButton("Add to Order", (d, w) -> {
+                    appendToOrder(existingOrder, items);
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void showConfirmDialog(int orderNumber, String customerName) {
+        List<OrderItem> items = cartAdapter.getItems();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Order #").append(orderNumber).append(" - ").append(customerName).append("\n\n");
         for (OrderItem item : items) {
             sb.append(item.getQuantity()).append("x ").append(item.getName())
                     .append(" - $").append(String.format(Locale.US, "%.2f", item.getLineTotal()))
@@ -163,26 +201,43 @@ public class WaiterMenuFragment extends Fragment implements MenuItemAdapter.OnIt
                 .setTitle(R.string.confirm_order)
                 .setMessage(sb.toString())
                 .setPositiveButton(R.string.send_to_kitchen, (d, w) -> {
-                    placeOrder(tableNumber, items);
+                    placeOrder(orderNumber, customerName, items);
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
-    private void placeOrder(int tableNumber, List<OrderItem> items) {
+    private void placeOrder(int orderNumber, String customerName, List<OrderItem> items) {
         try {
             String peerId = CouchbaseManager.getInstance().getCurrentPeerId();
-            String peerName = android.os.Build.MODEL + " - Waiter";
-            Order order = Order.create(tableNumber, items, peerId, peerName);
+            String peerName = android.os.Build.MODEL + " - Kiosk";
+            Order order = Order.create(orderNumber, customerName, items, peerId, peerName);
             orderRepo.saveOrder(order);
 
             // Clear cart
             cartAdapter.clear();
-            editTableNumber.setText("");
+            editCustomerName.setText("");
             updateCartVisibility();
 
             Toast.makeText(requireContext(),
-                    "Order " + order.getShortId() + " sent to kitchen!",
+                    "Order #" + orderNumber + " for " + customerName + " placed!",
+                    Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void appendToOrder(Order existingOrder, List<OrderItem> items) {
+        try {
+            orderRepo.appendItemsToOrder(existingOrder, items);
+
+            // Clear cart
+            cartAdapter.clear();
+            editCustomerName.setText("");
+            updateCartVisibility();
+
+            Toast.makeText(requireContext(),
+                    "Items added to " + existingOrder.getDisplayLabel() + "!",
                     Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             Toast.makeText(requireContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();

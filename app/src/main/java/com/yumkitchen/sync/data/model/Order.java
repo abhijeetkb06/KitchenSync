@@ -12,7 +12,8 @@ import java.util.UUID;
 
 public class Order {
     private String orderId;
-    private int tableNumber;
+    private int orderNumber;
+    private String customerName;
     private String status;
     private List<OrderItem> items;
     private double totalAmount;
@@ -20,18 +21,17 @@ public class Order {
     private String createdByName;
     private String createdAt;
     private String updatedAt;
-    private List<String> mergedOrderIds;
 
     public Order() {
         this.items = new ArrayList<>();
-        this.mergedOrderIds = new ArrayList<>();
     }
 
-    public static Order create(int tableNumber, List<OrderItem> items,
+    public static Order create(int orderNumber, String customerName, List<OrderItem> items,
                                String createdBy, String createdByName) {
         Order order = new Order();
         order.orderId = "order::" + UUID.randomUUID().toString().substring(0, 8);
-        order.tableNumber = tableNumber;
+        order.orderNumber = orderNumber;
+        order.customerName = customerName;
         order.status = "new";
         order.items = new ArrayList<>(items);
         order.totalAmount = 0;
@@ -50,7 +50,8 @@ public class Order {
         if (doc == null) return null;
         Order order = new Order();
         order.orderId = doc.getString("orderId");
-        order.tableNumber = doc.getInt("tableNumber");
+        order.orderNumber = doc.getInt("orderNumber");
+        order.customerName = doc.getString("customerName");
         order.status = doc.getString("status");
         order.totalAmount = doc.getDouble("totalAmount");
         order.createdBy = doc.getString("createdBy");
@@ -82,7 +83,8 @@ public class Order {
         Map<String, Object> map = new HashMap<>();
         map.put("type", "order");
         map.put("orderId", orderId);
-        map.put("tableNumber", tableNumber);
+        map.put("orderNumber", orderNumber);
+        map.put("customerName", customerName);
         map.put("status", status);
         map.put("totalAmount", totalAmount);
         map.put("createdBy", createdBy);
@@ -99,7 +101,8 @@ public class Order {
     }
 
     public String getOrderId() { return orderId; }
-    public int getTableNumber() { return tableNumber; }
+    public int getOrderNumber() { return orderNumber; }
+    public String getCustomerName() { return customerName; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public List<OrderItem> getItems() { return items; }
@@ -125,13 +128,9 @@ public class Order {
         return orderId;
     }
 
-    public List<String> getMergedOrderIds() {
-        return mergedOrderIds;
-    }
-
-    public void addMergedOrderId(String id) {
-        if (mergedOrderIds == null) mergedOrderIds = new ArrayList<>();
-        mergedOrderIds.add(id);
+    public String getDisplayLabel() {
+        String name = customerName != null ? customerName : "";
+        return "#" + orderNumber + " " + name;
     }
 
     public void addItems(List<OrderItem> newItems) {

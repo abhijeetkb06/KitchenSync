@@ -15,7 +15,7 @@ public final class Constants {
     public static final String ORDER_STATUS_NEW = "new";
     public static final String ORDER_STATUS_PREPARING = "preparing";
     public static final String ORDER_STATUS_READY = "ready";
-    public static final String ORDER_STATUS_SERVED = "served";
+    public static final String ORDER_STATUS_PICKED_UP = "picked_up";
 
     public static final String EXTRA_ROLE = "extra_role";
 }

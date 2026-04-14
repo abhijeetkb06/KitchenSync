@@ -1,9 +1,9 @@
 package com.yumkitchen.sync.data.model;
 
 public enum DeviceRole {
-    WAITER("Waiter", "Takes orders from tables"),
+    KIOSK("Kiosk", "Self-order station"),
     KITCHEN("Kitchen", "Receives and prepares orders"),
-    MANAGER("Manager", "Monitors operations");
+    STORE_MANAGER("Store Manager", "Monitor store operations");
 
     private final String displayName;
     private final String description;

@@ -39,7 +39,7 @@ public class OrderSummaryAdapter extends RecyclerView.Adapter<OrderSummaryAdapte
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Order order = orders.get(position);
 
-        holder.textTable.setText("Table " + order.getTableNumber());
+        holder.textTable.setText(order.getDisplayLabel());
         holder.textItems.setText(order.getItemCount() + " items");
         holder.textTime.setText(TimeUtils.getElapsedTime(order.getCreatedAt()));
 
@@ -57,7 +57,7 @@ public class OrderSummaryAdapter extends RecyclerView.Adapter<OrderSummaryAdapte
                 statusColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.status_ready);
                 break;
             default:
-                statusColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.status_served);
+                statusColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.status_picked_up);
                 break;
         }
 

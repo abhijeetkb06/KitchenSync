@@ -98,14 +98,8 @@ public class OrderCardAdapter extends RecyclerView.Adapter<OrderCardAdapter.View
         }
 
         void bind(Order order) {
-            textTable.setText("Table " + order.getTableNumber());
-            // Show count of merged orders if more than one
-            List<String> mergedIds = order.getMergedOrderIds();
-            if (mergedIds != null && mergedIds.size() > 1) {
-                textOrderId.setText(mergedIds.size() + " orders");
-            } else {
-                textOrderId.setText(order.getShortId());
-            }
+            textTable.setText(order.getDisplayLabel());
+            textOrderId.setText(order.getShortId());
             textElapsed.setText(TimeUtils.getElapsedMinutes(order.getCreatedAt()));
 
             // Set header color based on status
@@ -170,11 +164,11 @@ public class OrderCardAdapter extends RecyclerView.Adapter<OrderCardAdapter.View
                             listener.onStatusChange(order, Constants.ORDER_STATUS_READY));
                     break;
                 case Constants.ORDER_STATUS_READY:
-                    btnAction.setText(R.string.mark_served);
-                    btnAction.setBackgroundColor(ContextCompat.getColor(itemView.getContext(), R.color.status_served));
+                    btnAction.setText(R.string.mark_picked_up);
+                    btnAction.setBackgroundColor(ContextCompat.getColor(itemView.getContext(), R.color.status_picked_up));
                     btnAction.setVisibility(View.VISIBLE);
                     btnAction.setOnClickListener(v ->
-                            listener.onStatusChange(order, Constants.ORDER_STATUS_SERVED));
+                            listener.onStatusChange(order, Constants.ORDER_STATUS_PICKED_UP));
                     break;
                 default:
                     btnAction.setVisibility(View.GONE);

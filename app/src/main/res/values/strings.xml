@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Yum Kitchen Sync</string>
+    <string name="app_name">Kitchen Sync</string>
 
     <!-- Role Selection -->
     <string name="role_selection_title">Choose Your Role</string>
     <string name="role_selection_subtitle">Select how this device will be used</string>
-    <string name="role_waiter">Waiter</string>
-    <string name="role_waiter_desc">Take orders from tables</string>
+    <string name="role_kiosk">Kiosk</string>
+    <string name="role_kiosk_desc">Self-order station</string>
     <string name="role_kitchen">Kitchen</string>
     <string name="role_kitchen_desc">Receive and prepare orders</string>
-    <string name="role_manager">Manager</string>
-    <string name="role_manager_desc">Monitor all operations</string>
+    <string name="role_store_manager">Store Manager</string>
+    <string name="role_store_manager_desc">Monitor store operations</string>
 
-    <!-- Waiter -->
-    <string name="menu_title">Menu</string>
+    <!-- Kiosk (Self-Order) -->
+    <string name="menu_title">Order Here</string>
     <string name="category_all">All</string>
-    <string name="category_mains">Mains</string>
+    <string name="category_tacos">Tacos</string>
+    <string name="category_burritos">Burritos</string>
     <string name="category_sides">Sides</string>
     <string name="category_drinks">Drinks</string>
-    <string name="category_desserts">Desserts</string>
-    <string name="cart_title">Your Cart</string>
+    <string name="cart_title">Your Order</string>
     <string name="cart_empty">Cart is empty</string>
-    <string name="send_to_kitchen">Send to Kitchen</string>
-    <string name="table_number_hint">Table #</string>
-    <string name="order_sent">Order sent to kitchen!</string>
+    <string name="send_to_kitchen">Place Order</string>
+    <string name="customer_name_hint">Your Name</string>
+    <string name="order_sent">Order placed!</string>
     <string name="confirm_order">Confirm Order</string>
     <string name="cancel">Cancel</string>
 
@@ -32,11 +32,11 @@
     <string name="no_orders">No active orders</string>
     <string name="start_preparing">Start Preparing</string>
     <string name="mark_ready">Mark Ready</string>
-    <string name="mark_served">Served</string>
+    <string name="mark_picked_up">Picked Up</string>
     <string name="order_items_format">%d items</string>
 
-    <!-- Manager -->
-    <string name="manager_title">Dashboard</string>
+    <!-- Store Manager -->
+    <string name="manager_title">Store Dashboard</string>
     <string name="network_status">Network Status</string>
     <string name="order_overview">Order Overview</string>
     <string name="recent_orders">Recent Orders</string>
@@ -58,7 +58,7 @@
 
     <!-- General -->
     <string name="reset_demo">Reset Demo</string>
-    <string name="table_format">Table %d</string>
+    <string name="order_number_format">Order #%d</string>
 
     <!-- Code Snippet -->
     <string name="code_snippet_text">MultipeerReplicatorConfiguration config =\n  new MultipeerReplicatorConfiguration.Builder()\n    .setPeerGroupID(\"com.yumkitchen.sync\")\n    .setIdentity(identity)\n    .setAuthenticator(authenticator)\n    .setCollections(collections)\n    .build();\n\nreplicator = new MultipeerReplicator(config);\nreplicator.start();\n// That\'s it! Auto-discovery begins immediately.</string>

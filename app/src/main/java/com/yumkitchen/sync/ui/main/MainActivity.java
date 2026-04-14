@@ -19,6 +19,7 @@ import com.yumkitchen.sync.data.repository.OrderRepository;
 import com.yumkitchen.sync.ui.discovery.PeerDiscoveryFragment;
 import com.yumkitchen.sync.ui.kitchen.KitchenDisplayFragment;
 import com.yumkitchen.sync.ui.manager.ManagerDashboardFragment;
+import com.yumkitchen.sync.ui.statusboard.OrderStatusBoardFragment;
 import com.yumkitchen.sync.ui.waiter.WaiterMenuFragment;
 import com.yumkitchen.sync.util.Constants;
 
@@ -27,9 +28,10 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
     private DeviceRole currentRole;
     private MaterialToolbar toolbar;
     private BottomNavigationView bottomNav;
-    private WaiterMenuFragment waiterFragment;
+    private WaiterMenuFragment kioskFragment;
+    private OrderStatusBoardFragment statusBoardFragment;
     private KitchenDisplayFragment kitchenFragment;
-    private ManagerDashboardFragment managerFragment;
+    private ManagerDashboardFragment storeManagerFragment;
     private PeerDiscoveryFragment peerFragment;
     private int peerCount = 0;
 
@@ -39,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
         setContentView(R.layout.activity_main);
 
         String roleName = getIntent().getStringExtra(Constants.EXTRA_ROLE);
-        currentRole = roleName != null ? DeviceRole.valueOf(roleName) : DeviceRole.WAITER;
+        currentRole = roleName != null ? DeviceRole.valueOf(roleName) : DeviceRole.KIOSK;
 
         setupToolbar();
         setupBottomNav();
@@ -80,14 +82,17 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
         bottomNav = findViewById(R.id.bottom_nav);
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
-            if (id == R.id.nav_waiter) {
-                showFragment(getWaiterFragment());
+            if (id == R.id.nav_kiosk) {
+                showFragment(getKioskFragment());
+                return true;
+            } else if (id == R.id.nav_status_board) {
+                showFragment(getStatusBoardFragment());
                 return true;
             } else if (id == R.id.nav_kitchen) {
                 showFragment(getKitchenFragment());
                 return true;
-            } else if (id == R.id.nav_manager) {
-                showFragment(getManagerFragment());
+            } else if (id == R.id.nav_store_mgr) {
+                showFragment(getStoreManagerFragment());
                 return true;
             } else if (id == R.id.nav_peers) {
                 showFragment(getPeerFragment());
@@ -98,14 +103,14 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
 
         // Select the tab matching the initial role
         switch (currentRole) {
-            case WAITER:
-                bottomNav.setSelectedItemId(R.id.nav_waiter);
+            case KIOSK:
+                bottomNav.setSelectedItemId(R.id.nav_kiosk);
                 break;
             case KITCHEN:
                 bottomNav.setSelectedItemId(R.id.nav_kitchen);
                 break;
-            case MANAGER:
-                bottomNav.setSelectedItemId(R.id.nav_manager);
+            case STORE_MANAGER:
+                bottomNav.setSelectedItemId(R.id.nav_store_mgr);
                 break;
         }
     }
@@ -116,9 +121,14 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
                 .commit();
     }
 
-    private WaiterMenuFragment getWaiterFragment() {
-        if (waiterFragment == null) waiterFragment = new WaiterMenuFragment();
-        return waiterFragment;
+    private WaiterMenuFragment getKioskFragment() {
+        if (kioskFragment == null) kioskFragment = new WaiterMenuFragment();
+        return kioskFragment;
+    }
+
+    private OrderStatusBoardFragment getStatusBoardFragment() {
+        if (statusBoardFragment == null) statusBoardFragment = new OrderStatusBoardFragment();
+        return statusBoardFragment;
     }
 
     private KitchenDisplayFragment getKitchenFragment() {
@@ -126,9 +136,9 @@ public class MainActivity extends AppCompatActivity implements PeerEventBus.Peer
         return kitchenFragment;
     }
 
-    private ManagerDashboardFragment getManagerFragment() {
-        if (managerFragment == null) managerFragment = new ManagerDashboardFragment();
-        return managerFragment;
+    private ManagerDashboardFragment getStoreManagerFragment() {
+        if (storeManagerFragment == null) storeManagerFragment = new ManagerDashboardFragment();
+        return storeManagerFragment;
     }
 
     private PeerDiscoveryFragment getPeerFragment() {

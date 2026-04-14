@@ -13,20 +13,24 @@ import java.util.List;
 public class MenuRepository {
 
     private static final MenuItem[] SEED_ITEMS = {
-        new MenuItem("menu::burger_classic", "Classic Burger", "Mains", 12.99, "\uD83C\uDF54"),
-        new MenuItem("menu::street_tacos", "Street Tacos (3)", "Mains", 10.99, "\uD83C\uDF2E"),
-        new MenuItem("menu::crispy_wings", "Crispy Wings (8)", "Mains", 11.99, "\uD83C\uDF57"),
-        new MenuItem("menu::garden_salad", "Garden Salad", "Mains", 9.99, "\uD83E\uDD57"),
-        new MenuItem("menu::margherita_pizza", "Margherita Pizza", "Mains", 14.99, "\uD83C\uDF55"),
-        new MenuItem("menu::grilled_salmon", "Grilled Salmon", "Mains", 16.99, "\uD83C\uDF63"),
-        new MenuItem("menu::loaded_fries", "Loaded Fries", "Sides", 6.99, "\uD83C\uDF5F"),
-        new MenuItem("menu::onion_rings", "Onion Rings", "Sides", 5.99, "\uD83E\uDDC5"),
-        new MenuItem("menu::coleslaw", "Coleslaw", "Sides", 3.99, "\uD83E\uDD57"),
-        new MenuItem("menu::lemonade", "Fresh Lemonade", "Drinks", 3.99, "\uD83E\uDD64"),
-        new MenuItem("menu::craft_beer", "Craft Beer", "Drinks", 7.99, "\uD83C\uDF7A"),
-        new MenuItem("menu::iced_coffee", "Iced Coffee", "Drinks", 4.99, "\u2615"),
-        new MenuItem("menu::cheesecake", "Cheesecake", "Desserts", 8.99, "\uD83C\uDF70"),
-        new MenuItem("menu::brownie_sundae", "Brownie Sundae", "Desserts", 7.99, "\uD83C\uDF68"),
+        // Tacos
+        new MenuItem("menu::crunchy_taco", "Crunchy Taco", "Tacos", 1.89, "\uD83C\uDF2E"),
+        new MenuItem("menu::doritos_taco", "Doritos Locos Taco", "Tacos", 2.49, "\uD83C\uDF2E"),
+        new MenuItem("menu::soft_taco", "Soft Taco", "Tacos", 1.89, "\uD83C\uDF2E"),
+        new MenuItem("menu::chalupa", "Chalupa Supreme", "Tacos", 3.79, "\uD83C\uDF2E"),
+        // Burritos
+        new MenuItem("menu::bean_burrito", "Bean Burrito", "Burritos", 1.69, "\uD83C\uDF2F"),
+        new MenuItem("menu::beefy_5layer", "Beefy 5-Layer", "Burritos", 3.49, "\uD83C\uDF2F"),
+        new MenuItem("menu::crunchwrap", "Crunchwrap Supreme", "Burritos", 4.89, "\uD83C\uDF2F"),
+        new MenuItem("menu::quesarito", "Quesarito", "Burritos", 3.99, "\uD83C\uDF2F"),
+        // Sides
+        new MenuItem("menu::chips_nacho", "Chips & Nacho Cheese", "Sides", 1.89, "\uD83C\uDF5F"),
+        new MenuItem("menu::cinnamon_twists", "Cinnamon Twists", "Sides", 1.49, "\uD83C\uDF69"),
+        new MenuItem("menu::fiesta_potatoes", "Cheesy Fiesta Potatoes", "Sides", 2.49, "\uD83E\uDD54"),
+        // Drinks
+        new MenuItem("menu::baja_blast", "Baja Blast", "Drinks", 2.49, "\uD83E\uDD64"),
+        new MenuItem("menu::pepsi", "Pepsi", "Drinks", 1.99, "\uD83E\uDD64"),
+        new MenuItem("menu::tb_iced_coffee", "Iced Coffee", "Drinks", 2.79, "\u2615"),
     };
 
     public void seedMenuIfNeeded() throws CouchbaseLiteException {
@@ -34,7 +38,7 @@ public class MenuRepository {
         if (collection == null) return;
 
         // Check if menu items already exist
-        if (collection.getDocument("menu::burger_classic") != null) return;
+        if (collection.getDocument("menu::crunchy_taco") != null) return;
 
         for (MenuItem item : SEED_ITEMS) {
             MutableDocument doc = new MutableDocument(item.getMenuItemId());

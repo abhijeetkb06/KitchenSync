@@ -96,14 +96,14 @@ public class PeerDiscoveryFragment extends Fragment implements PeerEventBus.Peer
                     if (deviceRole != null) {
                         role = deviceRole;
                         switch (deviceRole) {
-                            case "WAITER":
+                            case "KIOSK":
                                 color = ContextCompat.getColor(requireContext(), R.color.yum_amber);
                                 break;
                             case "KITCHEN":
                                 color = ContextCompat.getColor(requireContext(), R.color.yum_red);
                                 break;
-                            case "MANAGER":
-                                color = ContextCompat.getColor(requireContext(), R.color.role_manager_start);
+                            case "STORE_MANAGER":
+                                color = ContextCompat.getColor(requireContext(), R.color.role_store_mgr_start);
                                 break;
                         }
                     }
@@ -160,7 +160,7 @@ public class PeerDiscoveryFragment extends Fragment implements PeerEventBus.Peer
             setIndicatorColor(R.color.success_green);
         } else {
             textStatus.setText(getString(R.string.replicator_inactive));
-            setIndicatorColor(R.color.status_served);
+            setIndicatorColor(R.color.status_picked_up);
         }
     }
 

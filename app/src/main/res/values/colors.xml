@@ -17,18 +17,18 @@
     <color name="status_new">#D32F2F</color>
     <color name="status_preparing">#FF6F00</color>
     <color name="status_ready">#2E7D32</color>
-    <color name="status_served">#9E9E9E</color>
+    <color name="status_picked_up">#9E9E9E</color>
 
-    <color name="role_waiter_start">#FF6F00</color>
-    <color name="role_waiter_end">#FF8F00</color>
+    <color name="role_kiosk_start">#FF6F00</color>
+    <color name="role_kiosk_end">#FF8F00</color>
     <color name="role_kitchen_start">#C62828</color>
     <color name="role_kitchen_end">#D32F2F</color>
-    <color name="role_manager_start">#1A237E</color>
-    <color name="role_manager_end">#283593</color>
+    <color name="role_store_mgr_start">#1A237E</color>
+    <color name="role_store_mgr_end">#283593</color>
 
-    <color name="peer_bubble_waiter">#40FF6F00</color>
+    <color name="peer_bubble_kiosk">#40FF6F00</color>
     <color name="peer_bubble_kitchen">#40D32F2F</color>
-    <color name="peer_bubble_manager">#401A237E</color>
+    <color name="peer_bubble_store_mgr">#401A237E</color>
     <color name="peer_bubble_unknown">#409E9E9E</color>
     <color name="peer_line">#30000000</color>
     <color name="peer_line_active">#801565C0</color>

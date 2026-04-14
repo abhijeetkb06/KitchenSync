@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/nav_waiter"
+        android:id="@+id/nav_kiosk"
         android:icon="@android:drawable/ic_menu_edit"
-        android:title="Waiter" />
+        android:title="Kiosk" />
+    <item
+        android:id="@+id/nav_status_board"
+        android:icon="@android:drawable/ic_menu_view"
+        android:title="Status" />
     <item
         android:id="@+id/nav_kitchen"
         android:icon="@android:drawable/ic_menu_manage"
         android:title="Kitchen" />
     <item
-        android:id="@+id/nav_manager"
+        android:id="@+id/nav_store_mgr"
         android:icon="@android:drawable/ic_menu_today"
         android:title="Manager" />
     <item

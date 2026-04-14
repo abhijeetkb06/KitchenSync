@@ -25,13 +25,15 @@ import com.yumkitchen.sync.data.repository.OrderRepository;
 import com.yumkitchen.sync.util.Constants;
 
 import java.util.List;
+import java.util.Locale;
 
 public class ManagerDashboardFragment extends Fragment implements PeerEventBus.PeerEventListener {
     private static final String TAG = "ManagerDashboard";
 
     private TextView textSyncStatus, textPeerSummary;
     private View indicatorSyncStatus;
-    private TextView textCountNew, textCountPreparing, textCountReady, textCountTotal;
+    private TextView textCountNew, textCountPreparing, textCountReady, textCountPickedUp, textCountTotal;
+    private TextView textRevenue;
     private OrderSummaryAdapter orderAdapter;
     private final OrderRepository orderRepo = new OrderRepository();
     private Query liveQuery;
@@ -57,7 +59,9 @@ public class ManagerDashboardFragment extends Fragment implements PeerEventBus.P
         textCountNew = view.findViewById(R.id.text_count_new);
         textCountPreparing = view.findViewById(R.id.text_count_preparing);
         textCountReady = view.findViewById(R.id.text_count_ready);
+        textCountPickedUp = view.findViewById(R.id.text_count_picked_up);
         textCountTotal = view.findViewById(R.id.text_count_total);
+        textRevenue = view.findViewById(R.id.text_revenue);
 
         // Recent orders
         RecyclerView recyclerOrders = view.findViewById(R.id.recycler_recent_orders);
@@ -132,8 +136,10 @@ public class ManagerDashboardFragment extends Fragment implements PeerEventBus.P
         List<Order> allOrders = orderRepo.getOrders(null);
         orderAdapter.setOrders(allOrders);
 
-        int newCount = 0, preparingCount = 0, readyCount = 0;
+        int newCount = 0, preparingCount = 0, readyCount = 0, pickedUpCount = 0;
+        double totalRevenue = 0;
         for (Order order : allOrders) {
+            totalRevenue += order.getTotalAmount();
             switch (order.getStatus()) {
                 case Constants.ORDER_STATUS_NEW:
                     newCount++;
@@ -144,13 +150,18 @@ public class ManagerDashboardFragment extends Fragment implements PeerEventBus.P
                 case Constants.ORDER_STATUS_READY:
                     readyCount++;
                     break;
+                case Constants.ORDER_STATUS_PICKED_UP:
+                    pickedUpCount++;
+                    break;
             }
         }
 
         textCountNew.setText(String.valueOf(newCount));
         textCountPreparing.setText(String.valueOf(preparingCount));
         textCountReady.setText(String.valueOf(readyCount));
+        textCountPickedUp.setText(String.valueOf(pickedUpCount));
         textCountTotal.setText(String.valueOf(allOrders.size()));
+        textRevenue.setText(String.format(Locale.US, "$%.2f", totalRevenue));
     }
 
     // PeerEventBus.PeerEventListener
@@ -168,7 +179,7 @@ public class ManagerDashboardFragment extends Fragment implements PeerEventBus.P
             setIndicatorColor(R.color.success_green);
         } else {
             textSyncStatus.setText(getString(R.string.replicator_inactive));
-            setIndicatorColor(R.color.status_served);
+            setIndicatorColor(R.color.status_picked_up);
         }
     }
 }

@@ -48,13 +48,13 @@ public class RoleSelectionActivity extends AppCompatActivity {
     }
 
     private void setupRoleCards() {
-        MaterialCardView waiterCard = findViewById(R.id.card_waiter);
+        MaterialCardView kioskCard = findViewById(R.id.card_kiosk);
         MaterialCardView kitchenCard = findViewById(R.id.card_kitchen);
-        MaterialCardView managerCard = findViewById(R.id.card_manager);
+        MaterialCardView storeManagerCard = findViewById(R.id.card_store_manager);
 
-        waiterCard.setOnClickListener(v -> onRoleSelected(DeviceRole.WAITER));
+        kioskCard.setOnClickListener(v -> onRoleSelected(DeviceRole.KIOSK));
         kitchenCard.setOnClickListener(v -> onRoleSelected(DeviceRole.KITCHEN));
-        managerCard.setOnClickListener(v -> onRoleSelected(DeviceRole.MANAGER));
+        storeManagerCard.setOnClickListener(v -> onRoleSelected(DeviceRole.STORE_MANAGER));
     }
 
     private void onRoleSelected(DeviceRole role) {

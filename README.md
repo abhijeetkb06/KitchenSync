@@ -1,10 +1,18 @@
-# Yum Kitchen Sync
+# Kitchen Sync
 
-**Peer-to-Peer Restaurant Order Sync with Zero Configuration**
+**Peer-to-Peer QSR Order Sync with Zero Configuration**
 
 A demo Android app showcasing [Couchbase Lite's MultipeerReplicator](https://docs.couchbase.com/couchbase-lite/current/android/p2psync-multipeer.html) for automatic device discovery and real-time data sync -- no server, no URLs, no manual setup. Devices on the same WiFi network find each other automatically and sync orders in real time.
 
-Built for **Yum Restaurant** to demonstrate how Couchbase Lite's P2P auto-discovery eliminates the need for server infrastructure in restaurant operations.
+Built to demonstrate how Couchbase Lite's P2P auto-discovery eliminates the need for server infrastructure in Quick Service Restaurant (QSR) operations.
+
+---
+
+## Screenshots
+
+| Role Selection | Kiosk (Self-Order) | Kitchen Display | Store Manager | P2P Mesh |
+|:-:|:-:|:-:|:-:|:-:|
+| ![Role Selection](screenshots/role_selection.png) | ![Kiosk View](screenshots/kiosk_view.png) | ![Kitchen View](screenshots/kitchen_view.png) | ![Manager View](screenshots/manager_view.png) | ![Peers View](screenshots/peers_view.png) |
 
 ---
 
@@ -23,11 +31,31 @@ Built for **Yum Restaurant** to demonstrate how Couchbase Lite's P2P auto-discov
 
 | Role | Description |
 |------|-------------|
-| **Waiter** | Browse menu, build cart, submit orders with table numbers |
-| **Kitchen** | Real-time Kitchen Display System (KDS) -- orders from the same table are merged into a single card with food emojis |
-| **Manager** | Dashboard with network status, order statistics, peer mesh visualization, and code spotlight |
+| **Kiosk** | Self-order station -- browse the Taco Bell menu, build a cart, enter customer name, place order |
+| **Kitchen** | Real-time Kitchen Display System (KDS) -- order cards with food emojis, tap through status: New > Preparing > Ready > Picked Up |
+| **Store Manager** | Dashboard with network status, order stats (New/Preparing/Ready/Picked Up), today's revenue, recent orders, and code spotlight |
+| **Status Board** | Customer-facing order status display with "Preparing" and "Ready for Pickup" columns |
+| **Peers** | Live P2P mesh visualization showing all connected devices and their roles |
 
-All roles are accessible from any device via bottom navigation tabs (Waiter / Kitchen / Manager / Peers), regardless of which role was selected at launch.
+All views are accessible from any device via the 5-tab bottom navigation (Kiosk / Status / Kitchen / Manager / Peers), regardless of which role was selected at launch.
+
+### QSR Order Flow
+
+```
+Customer at Kiosk          Kitchen Make Line         Order Status Board        Store Manager
+     |                          |                          |                        |
+     |  1. Place Order          |                          |                        |
+     |------------------------->|  2. Order appears         |                        |
+     |                          |     automatically         |                        |
+     |                          |------------------------->|  "Preparing"            |
+     |                          |  3. Mark Ready            |                        |
+     |                          |------------------------->|  "Ready for Pickup"     |
+     |  4. Pick up order        |                          |                        |
+     |                          |  5. Mark Picked Up        |                        |
+     |                          |                          |----------------------->|  Revenue updated
+```
+
+**Same-customer orders are automatically appended** -- if the customer name matches an existing open order, new items are added to it instead of creating a duplicate.
 
 ---
 
@@ -81,24 +109,24 @@ Or install via Android Studio SDK Manager under **SDK Platforms > Android 14 > G
 
 ### 4. Create 3 AVDs (Android Virtual Devices)
 
-Create three emulators representing different restaurant devices:
+Create three emulators representing different QSR devices:
 
 ```bash
 # Using cmdline-tools (adjust path to your SDK)
 AVDMANAGER=$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager
 
-# Waiter Phone (Pixel 5)
-$AVDMANAGER create avd -n "Yum_Waiter_Phone" \
+# Kiosk Phone (Pixel 5)
+$AVDMANAGER create avd -n "KitchenSync_Kiosk" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
   -d "pixel_5" --force <<< "no"
 
 # Kitchen Tablet (Pixel C)
-$AVDMANAGER create avd -n "Yum_Kitchen_Tablet" \
+$AVDMANAGER create avd -n "KitchenSync_Kitchen_Tablet" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
   -d "pixel_c" --force <<< "no"
 
 # Manager Phone (Pixel 5)
-$AVDMANAGER create avd -n "Yum_Manager_Phone" \
+$AVDMANAGER create avd -n "KitchenSync_Manager" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
   -d "pixel_5" --force <<< "no"
 ```
@@ -108,11 +136,11 @@ Or create them via **Android Studio > Device Manager > Create Device**.
 ### 5. Launch All 3 Emulators
 
 ```bash
-emulator -avd Yum_Waiter_Phone -no-snapshot-load -no-audio &
+emulator -avd KitchenSync_Kiosk -no-snapshot-load -no-audio &
 sleep 5
-emulator -avd Yum_Kitchen_Tablet -no-snapshot-load -no-audio &
+emulator -avd KitchenSync_Kitchen_Tablet -no-snapshot-load -no-audio &
 sleep 5
-emulator -avd Yum_Manager_Phone -no-snapshot-load -no-audio &
+emulator -avd KitchenSync_Manager -no-snapshot-load -no-audio &
 ```
 
 Wait for all 3 to boot. Verify they're online:
@@ -143,18 +171,18 @@ done
 ### 8. Select Roles and Grant Permissions
 
 On each emulator:
-1. Select a role (Waiter / Kitchen / Manager)
-2. Tap **"Allow"** when prompted for nearby device permissions
+1. Select a role (Kiosk / Kitchen / Store Manager)
+2. Tap **"While using the app"** when prompted for location permission
 3. The devices will auto-discover each other -- you'll see "N peers connected" in the toolbar
 
 ### 9. Test the Flow
 
-1. **Waiter emulator**: Browse the menu, add items to cart, enter a table number, tap "Send to Kitchen"
-2. **Kitchen emulator**: Watch the order appear in real-time on the KDS board with food emojis
-3. **Send more items for the same table** -- they merge into the same card
-4. **Kitchen**: Tap "Start Preparing" > "Mark Ready" > "Mark Served" to progress the order
-5. **Manager emulator**: View dashboard with live order counts and network status
-6. **Any emulator**: Use bottom nav tabs to switch between Waiter/Kitchen/Manager/Peers views
+1. **Kiosk**: Browse the menu (Tacos, Burritos, Sides, Drinks), add items to cart, enter a customer name, tap "Place Order"
+2. **Kitchen**: Watch the order appear in real-time with food emojis -- tap "Start Preparing" > "Mark Ready" > "Picked Up"
+3. **Place another order for the same customer name** -- items are appended to the existing open order
+4. **Status Board tab**: See orders split into "Preparing" and "Ready for Pickup" columns
+5. **Store Manager tab**: View dashboard with live order counts, today's revenue, and network status
+6. **Peers tab**: See the live P2P mesh network with all connected devices
 
 ---
 
@@ -212,9 +240,10 @@ com.yumkitchen.sync/
 |   +-- PeerEventBus.java       # Thread-safe observer for P2P events
 +-- ui/
 |   +-- roleselection/  # RoleSelectionActivity (launcher)
-|   +-- main/           # MainActivity (4-tab bottom nav host)
-|   +-- waiter/         # WaiterMenuFragment, MenuItemAdapter, CartAdapter
+|   +-- main/           # MainActivity (5-tab bottom nav host)
+|   +-- waiter/         # WaiterMenuFragment (Kiosk), MenuItemAdapter, CartAdapter
 |   +-- kitchen/        # KitchenDisplayFragment, OrderCardAdapter
+|   +-- statusboard/    # OrderStatusBoardFragment, StatusBoardAdapter
 |   +-- discovery/      # PeerDiscoveryFragment, PeerMeshView, PeerListAdapter
 |   +-- manager/        # ManagerDashboardFragment, OrderSummaryAdapter
 +-- util/               # Constants, PermissionHelper, TimeUtils
@@ -241,10 +270,6 @@ MultipeerReplicatorConfiguration config = new MultipeerReplicatorConfiguration.B
 MultipeerReplicator replicator = new MultipeerReplicator(config);
 replicator.start();  // That's it -- devices auto-discover and sync
 ```
-
-### Kitchen Display: Table-Based Order Merging
-
-Multiple orders for the same table are automatically merged into a single card on the Kitchen display. Each item shows its food emoji for quick visual identification. When the kitchen marks a table as "preparing" or "ready", all underlying order documents are updated.
 
 ---
 

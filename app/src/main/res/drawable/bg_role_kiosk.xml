@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <gradient
-        android:startColor="@color/role_waiter_start"
-        android:endColor="@color/role_waiter_end"
+        android:startColor="@color/role_kiosk_start"
+        android:endColor="@color/role_kiosk_end"
         android:angle="135" />
     <corners android:radius="@dimen/card_corner_radius" />
 </shape>

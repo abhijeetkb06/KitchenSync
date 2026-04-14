@@ -103,7 +103,7 @@ public class OrderRepository {
             Expression where = Expression.property("type")
                     .equalTo(Expression.string(Constants.DOC_TYPE_ORDER))
                     .and(Expression.property("status")
-                            .notEqualTo(Expression.string(Constants.ORDER_STATUS_SERVED)));
+                            .notEqualTo(Expression.string(Constants.ORDER_STATUS_PICKED_UP)));
 
             Query query = QueryBuilder.select(SelectResult.all())
                     .from(DataSource.collection(collection))
@@ -152,7 +152,7 @@ public class OrderRepository {
                 .where(Expression.property("type")
                         .equalTo(Expression.string(Constants.DOC_TYPE_ORDER))
                         .and(Expression.property("status")
-                                .notEqualTo(Expression.string(Constants.ORDER_STATUS_SERVED))))
+                                .notEqualTo(Expression.string(Constants.ORDER_STATUS_PICKED_UP))))
                 .orderBy(Ordering.property("createdAt").ascending());
     }
 
@@ -168,5 +168,70 @@ public class OrderRepository {
             }
         }
         Log.i(TAG, "All orders deleted");
+    }
+
+    public int getMaxOrderNumber() {
+        int max = 0;
+        Collection collection = CouchbaseManager.getInstance().getCollection();
+        if (collection == null) return max;
+
+        try {
+            Query query = QueryBuilder.select(SelectResult.property("orderNumber"))
+                    .from(DataSource.collection(collection))
+                    .where(Expression.property("type")
+                            .equalTo(Expression.string(Constants.DOC_TYPE_ORDER)));
+
+            ResultSet rs = query.execute();
+            for (Result result : rs) {
+                int num = result.getInt("orderNumber");
+                if (num > max) max = num;
+            }
+        } catch (CouchbaseLiteException e) {
+            Log.e(TAG, "Error querying max order number", e);
+        }
+        return max;
+    }
+
+    /**
+     * Find an open (new or preparing) order for the given customer name (case-insensitive).
+     */
+    public Order findOpenOrderByCustomerName(String customerName) {
+        if (customerName == null || customerName.isEmpty()) return null;
+        String nameLower = customerName.toLowerCase();
+
+        List<Order> activeOrders = getActiveOrders();
+        for (Order order : activeOrders) {
+            String status = order.getStatus();
+            if (Constants.ORDER_STATUS_NEW.equals(status) || Constants.ORDER_STATUS_PREPARING.equals(status)) {
+                String existingName = order.getCustomerName();
+                if (existingName != null && existingName.toLowerCase().equals(nameLower)) {
+                    return order;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Append items to an existing order document and update total.
+     */
+    public void appendItemsToOrder(Order existingOrder, List<com.yumkitchen.sync.data.model.OrderItem> newItems) throws CouchbaseLiteException {
+        Collection collection = CouchbaseManager.getInstance().getCollection();
+        if (collection == null) return;
+
+        existingOrder.addItems(newItems);
+        existingOrder.setUpdatedAt(java.time.Instant.now().toString());
+
+        // Re-save the full document
+        Document doc = collection.getDocument(existingOrder.getOrderId());
+        if (doc == null) return;
+
+        MutableDocument mutableDoc = doc.toMutable();
+        Map<String, Object> map = existingOrder.toMap();
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            mutableDoc.setValue(entry.getKey(), entry.getValue());
+        }
+        collection.save(mutableDoc);
+        Log.i(TAG, "Items appended to order: " + existingOrder.getOrderId());
     }
 }
