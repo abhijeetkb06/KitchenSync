@@ -14,11 +14,11 @@
         android:orientation="vertical"
         android:padding="@dimen/spacing_md">
 
-        <TextView
-            android:id="@+id/text_emoji"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/menu_item_emoji_size" />
+        <ImageView
+            android:id="@+id/image_food"
+            android:layout_width="@dimen/menu_item_image_size"
+            android:layout_height="@dimen/menu_item_image_size"
+            android:scaleType="centerCrop" />
 
         <TextView
             android:id="@+id/text_name"

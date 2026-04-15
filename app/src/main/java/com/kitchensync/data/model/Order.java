@@ -71,7 +71,7 @@ public class Order {
                     map.put("quantity", dict.getInt("quantity"));
                     map.put("notes", dict.getString("notes"));
                     map.put("price", dict.getDouble("price"));
-                    map.put("emoji", dict.getString("emoji"));
+                    map.put("imageKey", dict.getString("imageKey"));
                     order.items.add(OrderItem.fromMap(map));
                 }
             }

@@ -14,23 +14,23 @@ public class MenuRepository {
 
     private static final MenuItem[] SEED_ITEMS = {
         // Tacos
-        new MenuItem("menu::crunchy_taco", "Crunchy Taco", "Tacos", 1.89, "\uD83C\uDF2E"),
-        new MenuItem("menu::doritos_taco", "Doritos Locos Taco", "Tacos", 2.49, "\uD83C\uDF2E"),
-        new MenuItem("menu::soft_taco", "Soft Taco", "Tacos", 1.89, "\uD83C\uDF2E"),
-        new MenuItem("menu::chalupa", "Chalupa Supreme", "Tacos", 3.79, "\uD83C\uDF2E"),
+        new MenuItem("menu::crunchy_taco", "Crunchy Taco", "Tacos", 1.89, "crunchy_taco"),
+        new MenuItem("menu::doritos_taco", "Doritos Locos Taco", "Tacos", 2.49, "doritos_taco"),
+        new MenuItem("menu::soft_taco", "Soft Taco", "Tacos", 1.89, "soft_taco"),
+        new MenuItem("menu::chalupa", "Chalupa Supreme", "Tacos", 3.79, "chalupa"),
         // Burritos
-        new MenuItem("menu::bean_burrito", "Bean Burrito", "Burritos", 1.69, "\uD83C\uDF2F"),
-        new MenuItem("menu::beefy_5layer", "Beefy 5-Layer", "Burritos", 3.49, "\uD83C\uDF2F"),
-        new MenuItem("menu::crunchwrap", "Crunchwrap Supreme", "Burritos", 4.89, "\uD83C\uDF2F"),
-        new MenuItem("menu::quesarito", "Quesarito", "Burritos", 3.99, "\uD83C\uDF2F"),
+        new MenuItem("menu::bean_burrito", "Bean Burrito", "Burritos", 1.69, "bean_burrito"),
+        new MenuItem("menu::beefy_5layer", "Beefy 5-Layer", "Burritos", 3.49, "beefy_5layer"),
+        new MenuItem("menu::crunchwrap", "Crunchwrap Supreme", "Burritos", 4.89, "crunchwrap"),
+        new MenuItem("menu::quesarito", "Quesarito", "Burritos", 3.99, "quesarito"),
         // Sides
-        new MenuItem("menu::chips_nacho", "Chips & Nacho Cheese", "Sides", 1.89, "\uD83C\uDF5F"),
-        new MenuItem("menu::cinnamon_twists", "Cinnamon Twists", "Sides", 1.49, "\uD83C\uDF69"),
-        new MenuItem("menu::fiesta_potatoes", "Cheesy Fiesta Potatoes", "Sides", 2.49, "\uD83E\uDD54"),
+        new MenuItem("menu::chips_nacho", "Chips & Nacho Cheese", "Sides", 1.89, "chips_nacho"),
+        new MenuItem("menu::cinnamon_twists", "Cinnamon Twists", "Sides", 1.49, "cinnamon_twists"),
+        new MenuItem("menu::fiesta_potatoes", "Cheesy Fiesta Potatoes", "Sides", 2.49, "fiesta_potatoes"),
         // Drinks
-        new MenuItem("menu::baja_blast", "Baja Blast", "Drinks", 2.49, "\uD83E\uDD64"),
-        new MenuItem("menu::pepsi", "Pepsi", "Drinks", 1.99, "\uD83E\uDD64"),
-        new MenuItem("menu::tb_iced_coffee", "Iced Coffee", "Drinks", 2.79, "\u2615"),
+        new MenuItem("menu::baja_blast", "Baja Blast", "Drinks", 2.49, "baja_blast"),
+        new MenuItem("menu::pepsi", "Pepsi", "Drinks", 1.99, "pepsi"),
+        new MenuItem("menu::tb_iced_coffee", "Iced Coffee", "Drinks", 2.79, "tb_iced_coffee"),
     };
 
     public void seedMenuIfNeeded() throws CouchbaseLiteException {
@@ -68,7 +68,7 @@ public class MenuRepository {
                 map.put("name", doc.getString("name"));
                 map.put("category", doc.getString("category"));
                 map.put("price", doc.getDouble("price"));
-                map.put("emoji", doc.getString("emoji"));
+                map.put("imageKey", doc.getString("imageKey"));
                 map.put("available", doc.getBoolean("available"));
                 items.add(MenuItem.fromMap(map));
             }

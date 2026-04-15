@@ -6,6 +6,7 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -18,6 +19,7 @@ import com.kitchensync.R;
 import com.kitchensync.data.model.Order;
 import com.kitchensync.data.model.OrderItem;
 import com.kitchensync.util.Constants;
+import com.kitchensync.util.MenuImageMapper;
 import com.kitchensync.util.TimeUtils;
 
 import java.util.ArrayList;
@@ -125,14 +127,19 @@ public class OrderCardAdapter extends RecyclerView.Adapter<OrderCardAdapter.View
                 row.setGravity(android.view.Gravity.CENTER_VERTICAL);
                 row.setPadding(0, 4, 0, 4);
 
-                // Emoji
-                String emoji = item.getEmoji();
-                if (emoji != null && !emoji.isEmpty()) {
-                    TextView emojiTv = new TextView(itemView.getContext());
-                    emojiTv.setText(emoji);
-                    emojiTv.setTextSize(20);
-                    emojiTv.setPadding(0, 0, 12, 0);
-                    row.addView(emojiTv);
+                // Food image
+                String imageKey = item.getImageKey();
+                int resId = MenuImageMapper.getDrawableRes(imageKey);
+                if (resId != 0) {
+                    ImageView foodIv = new ImageView(itemView.getContext());
+                    int size = itemView.getContext().getResources()
+                            .getDimensionPixelSize(R.dimen.kitchen_item_image_size);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
+                    lp.setMarginEnd(12);
+                    foodIv.setLayoutParams(lp);
+                    foodIv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                    foodIv.setImageResource(resId);
+                    row.addView(foodIv);
                 }
 
                 // Item text

@@ -15,6 +15,8 @@
     <dimen name="role_desc_size">14sp</dimen>
 
     <dimen name="menu_item_emoji_size">40sp</dimen>
+    <dimen name="menu_item_image_size">80dp</dimen>
+    <dimen name="kitchen_item_image_size">28dp</dimen>
     <dimen name="menu_item_name_size">15sp</dimen>
     <dimen name="menu_item_price_size">14sp</dimen>
 

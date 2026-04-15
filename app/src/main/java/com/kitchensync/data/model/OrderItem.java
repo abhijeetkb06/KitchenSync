@@ -9,17 +9,17 @@ public class OrderItem {
     private int quantity;
     private String notes;
     private double price;
-    private String emoji;
+    private String imageKey;
 
     public OrderItem() {}
 
-    public OrderItem(String menuItemId, String name, int quantity, String notes, double price, String emoji) {
+    public OrderItem(String menuItemId, String name, int quantity, String notes, double price, String imageKey) {
         this.menuItemId = menuItemId;
         this.name = name;
         this.quantity = quantity;
         this.notes = notes;
         this.price = price;
-        this.emoji = emoji;
+        this.imageKey = imageKey;
     }
 
     @SuppressWarnings("unchecked")
@@ -30,7 +30,7 @@ public class OrderItem {
         item.quantity = ((Number) map.get("quantity")).intValue();
         item.notes = (String) map.get("notes");
         item.price = ((Number) map.get("price")).doubleValue();
-        item.emoji = (String) map.get("emoji");
+        item.imageKey = (String) map.get("imageKey");
         return item;
     }
 
@@ -41,7 +41,7 @@ public class OrderItem {
         map.put("quantity", quantity);
         map.put("notes", notes != null ? notes : "");
         map.put("price", price);
-        map.put("emoji", emoji != null ? emoji : "");
+        map.put("imageKey", imageKey != null ? imageKey : "");
         return map;
     }
 
@@ -56,6 +56,6 @@ public class OrderItem {
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
     public double getLineTotal() { return price * quantity; }
-    public String getEmoji() { return emoji; }
-    public void setEmoji(String emoji) { this.emoji = emoji; }
+    public String getImageKey() { return imageKey; }
+    public void setImageKey(String imageKey) { this.imageKey = imageKey; }
 }

@@ -3,6 +3,7 @@ package com.kitchensync.ui.waiter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -11,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import com.kitchensync.R;
 import com.kitchensync.data.model.MenuItem;
+import com.kitchensync.util.MenuImageMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +47,10 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         MenuItem item = items.get(position);
-        holder.emoji.setText(item.getEmoji());
+        int resId = MenuImageMapper.getDrawableRes(item.getImageKey());
+        if (resId != 0) {
+            holder.foodImage.setImageResource(resId);
+        }
         holder.name.setText(item.getName());
         holder.price.setText(String.format(Locale.US, "$%.2f", item.getPrice()));
         holder.btnAdd.setOnClickListener(v -> listener.onAddToCart(item));
@@ -57,12 +62,13 @@ public class MenuItemAdapter extends RecyclerView.Adapter<MenuItemAdapter.ViewHo
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView emoji, name, price;
+        ImageView foodImage;
+        TextView name, price;
         MaterialButton btnAdd;
 
         ViewHolder(View itemView) {
             super(itemView);
-            emoji = itemView.findViewById(R.id.text_emoji);
+            foodImage = itemView.findViewById(R.id.image_food);
             name = itemView.findViewById(R.id.text_name);
             price = itemView.findViewById(R.id.text_price);
             btnAdd = itemView.findViewById(R.id.btn_add);
