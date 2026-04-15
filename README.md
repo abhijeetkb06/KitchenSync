@@ -57,7 +57,7 @@ Developer is responsible for:
                         stale connections when devices leave
 ```
 
-**Result:** ~100+ lines of P2P plumbing code, a rigid **star topology** (one listener, many clients), and a **single point of failure** -- if the listener device goes down, all sync stops.
+**Result:** ~75-100 lines of P2P plumbing code (Couchbase listener/replicator setup + Android NSD discovery + connection management), a rigid **star topology** (one listener, many clients), and a **single point of failure** -- if the listener device goes down, all sync stops.
 
 ### New Approach: MultipeerReplicator (What This App Uses)
 
@@ -90,7 +90,7 @@ replicator.start();  // Done. Devices auto-discover and form a mesh.
 | **TLS Setup** | Manual cert exchange between listener and clients | Mutual TLS built-in (just provide an identity) |
 | **Reconnection** | Code exponential backoff and dead-peer detection | Auto-healing with rerouting |
 | **Connection Tracking** | Maintain peer list, avoid duplicates, clean up stale | Managed by the replicator |
-| **Lines of P2P Code** | ~100+ | ~30 |
+| **Lines of P2P Code** | ~75-100 | ~30 |
 
 ### Key Architectural Difference
 
