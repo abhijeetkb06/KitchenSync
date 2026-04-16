@@ -50,6 +50,8 @@
     <string name="peer_discovery_title">Peer Network</string>
     <string name="this_device">This Device</string>
     <string name="searching">Searching for peers\u2026</string>
+    <string name="refresh_peers">Refresh peer discovery</string>
+    <string name="refreshing_peers">Refreshing peer discovery\u2026</string>
 
     <!-- Permissions -->
     <string name="permissions_title">Permissions Needed</string>

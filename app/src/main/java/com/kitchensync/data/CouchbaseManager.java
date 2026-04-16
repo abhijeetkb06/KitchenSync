@@ -168,6 +168,31 @@ public class CouchbaseManager {
         writeDeviceDocument(deviceName, role);
     }
 
+    /**
+     * Manual refresh: tear down current replicator and create a fresh one.
+     * Forces a new mDNS broadcast + browse cycle to rediscover peers.
+     */
+    public void refreshPeerSync() {
+        if (intentionallyStopped.get() || collection == null) return;
+        Log.i(TAG, "Manual peer sync refresh requested");
+        executor.execute(() -> {
+            try {
+                boostInProgress.set(true);
+                tearDownReplicator();
+                Thread.sleep(500);
+                createAndStartReplicator();
+                boostInProgress.set(false);
+                peerFound.set(false);
+                boostAttempts = 0;
+                scheduleDiscoveryBoost();
+                Log.i(TAG, "Peer sync refreshed. PeerId: " + currentPeerId);
+            } catch (Exception e) {
+                boostInProgress.set(false);
+                Log.e(TAG, "Peer sync refresh failed", e);
+            }
+        });
+    }
+
     public void stopPeerSync() {
         intentionallyStopped.set(true);
         tearDownReplicator();
