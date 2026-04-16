@@ -45,6 +45,7 @@ public class CouchbaseManager {
     private static final String PREFS_NAME = "kitchensync_prefs";
     private static final String PREF_DEVICE_UUID = "device_uuid";
     private static final long DISCOVERY_BOOST_DELAY_MS = 3000;
+    private static final long AUTO_RECOVERY_DELAY_MS = 2000;
     private static final int MAX_BOOST_ATTEMPTS = 2;
 
     private static CouchbaseManager instance;
@@ -58,8 +59,11 @@ public class CouchbaseManager {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final AtomicBoolean peerFound = new AtomicBoolean(false);
+    private final AtomicBoolean intentionallyStopped = new AtomicBoolean(false);
+    private final AtomicBoolean boostInProgress = new AtomicBoolean(false);
     private int boostAttempts = 0;
-    private TLSIdentity cachedIdentity;
+    private volatile TLSIdentity cachedIdentity;
+    private volatile boolean preWarmDone = false;
     private String persistentDeviceUuid;
 
     private CouchbaseManager() {}
@@ -73,7 +77,6 @@ public class CouchbaseManager {
 
     public void init(Context appContext) {
         this.context = appContext.getApplicationContext();
-        // Load or create persistent device UUID
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         persistentDeviceUuid = prefs.getString(PREF_DEVICE_UUID, null);
         if (persistentDeviceUuid == null) {
@@ -93,10 +96,12 @@ public class CouchbaseManager {
                 long start = System.currentTimeMillis();
                 openDatabase();
                 cachedIdentity = getOrCreateIdentity();
+                preWarmDone = true;
                 long elapsed = System.currentTimeMillis() - start;
                 Log.i(TAG, "Pre-warm complete in " + elapsed + "ms (DB + TLS identity ready)");
             } catch (Exception e) {
                 Log.e(TAG, "Pre-warm failed", e);
+                preWarmDone = true;
             }
         });
     }
@@ -104,7 +109,6 @@ public class CouchbaseManager {
     public void openDatabase() throws CouchbaseLiteException {
         if (database != null) return;
 
-        // Enable verbose CBL logging for P2P debugging
         LogSinks.get().setConsole(new ConsoleLogSink(
                 LogLevel.VERBOSE, LogDomain.REPLICATOR, LogDomain.NETWORK));
 
@@ -128,37 +132,21 @@ public class CouchbaseManager {
             return;
         }
 
-        // Use cached identity from pre-warm, or create one now
-        TLSIdentity identity = cachedIdentity != null ? cachedIdentity : getOrCreateIdentity();
+        // Wait for preWarm to finish (avoids creating duplicate TLS identities)
+        if (!preWarmDone) {
+            Log.i(TAG, "Waiting for preWarm to complete...");
+            long waitStart = System.currentTimeMillis();
+            while (!preWarmDone && (System.currentTimeMillis() - waitStart) < 10000) {
+                Thread.sleep(50);
+            }
+            Log.i(TAG, "PreWarm wait finished in " + (System.currentTimeMillis() - waitStart) + "ms");
+        }
 
-        // Collection configuration
-        MultipeerCollectionConfiguration colConfig =
-                new MultipeerCollectionConfiguration.Builder(collection).build();
-        Set<MultipeerCollectionConfiguration> collections = new HashSet<>();
-        collections.add(colConfig);
-
-        // Authenticator (accept-all for demo)
-        MultipeerCertificateAuthenticator authenticator =
-                new MultipeerCertificateAuthenticator((peer, certs) -> true);
-
-        // Replicator configuration
-        MultipeerReplicatorConfiguration config = new MultipeerReplicatorConfiguration.Builder()
-                .setPeerGroupID(Constants.PEER_GROUP_ID)
-                .setIdentity(identity)
-                .setAuthenticator(authenticator)
-                .setCollections(collections)
-                .build();
-
-        // Create and start -- auto-discovery begins immediately
-        replicator = new MultipeerReplicator(config);
-        registerListeners();
-        replicator.start();
-
-        PeerInfo.PeerId peerId = replicator.getPeerId();
-        currentPeerId = peerId != null ? peerId.toString() : "unknown";
+        intentionallyStopped.set(false);
+        createAndStartReplicator();
         Log.i(TAG, "MultipeerReplicator started EARLY. PeerId: " + currentPeerId);
 
-        // Schedule discovery boost: if no peers found in 3s, restart to force fresh mDNS
+        // Schedule discovery boost
         peerFound.set(false);
         boostAttempts = 0;
         scheduleDiscoveryBoost();
@@ -181,16 +169,8 @@ public class CouchbaseManager {
     }
 
     public void stopPeerSync() {
-        for (ListenerToken token : listenerTokens) {
-            token.remove();
-        }
-        listenerTokens.clear();
-
-        if (replicator != null) {
-            replicator.stop();
-            replicator = null;
-            Log.i(TAG, "MultipeerReplicator stopped");
-        }
+        intentionallyStopped.set(true);
+        tearDownReplicator();
     }
 
     public void close() {
@@ -215,9 +195,13 @@ public class CouchbaseManager {
     public Set<String> getNeighborPeers() {
         Set<String> result = new HashSet<>();
         if (replicator != null) {
-            Set<PeerInfo.PeerId> peers = replicator.getNeighborPeers();
-            for (PeerInfo.PeerId peer : peers) {
-                result.add(peer.toString());
+            try {
+                Set<PeerInfo.PeerId> peers = replicator.getNeighborPeers();
+                for (PeerInfo.PeerId peer : peers) {
+                    result.add(peer.toString());
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "getNeighborPeers failed (replicator may be stopped)", e);
             }
         }
         return result;
@@ -235,24 +219,84 @@ public class CouchbaseManager {
         return database != null && collection != null;
     }
 
+    // --- Core replicator lifecycle ---
+
+    /**
+     * Creates a new MultipeerReplicator, registers listeners, and starts it.
+     * MultipeerReplicator is one-shot: once stopped, it cannot be restarted.
+     * Always call tearDownReplicator() before calling this again.
+     */
+    private void createAndStartReplicator() throws Exception {
+        TLSIdentity identity = cachedIdentity != null ? cachedIdentity : getOrCreateIdentity();
+
+        MultipeerCollectionConfiguration colConfig =
+                new MultipeerCollectionConfiguration.Builder(collection).build();
+        Set<MultipeerCollectionConfiguration> collections = new HashSet<>();
+        collections.add(colConfig);
+
+        MultipeerCertificateAuthenticator authenticator =
+                new MultipeerCertificateAuthenticator((peer, certs) -> true);
+
+        MultipeerReplicatorConfiguration config = new MultipeerReplicatorConfiguration.Builder()
+                .setPeerGroupID(Constants.PEER_GROUP_ID)
+                .setIdentity(identity)
+                .setAuthenticator(authenticator)
+                .setCollections(collections)
+                .build();
+
+        replicator = new MultipeerReplicator(config);
+        registerListeners();
+        replicator.start();
+
+        PeerInfo.PeerId peerId = replicator.getPeerId();
+        currentPeerId = peerId != null ? peerId.toString() : currentPeerId;
+    }
+
+    /**
+     * Tears down the current replicator: removes listeners, stops, nulls out.
+     */
+    private void tearDownReplicator() {
+        for (ListenerToken token : listenerTokens) {
+            token.remove();
+        }
+        listenerTokens.clear();
+
+        if (replicator != null) {
+            replicator.stop();
+            replicator = null;
+            Log.i(TAG, "MultipeerReplicator stopped");
+        }
+    }
+
     // --- Private helpers ---
 
+    /**
+     * Returns the device-unique identity label. Each device gets its own
+     * Keystore entry keyed by its persistent UUID, preventing PeerId collisions
+     * across emulators/devices that share the same base system image.
+     * Android Keystore entries survive pm clear, so using a device-unique label
+     * ensures we never accidentally reuse another device's certificate.
+     */
+    private String getDeviceIdentityLabel() {
+        return Constants.IDENTITY_LABEL + "." + persistentDeviceUuid;
+    }
+
     private TLSIdentity getOrCreateIdentity() throws CouchbaseLiteException {
-        // Use persistent UUID so the same device keeps the same identity across restarts.
-        // Each emulator/device gets a unique UUID stored in SharedPreferences,
-        // avoiding DNS-SD name conflicts without the overhead of recreating certs every launch.
+        String label = getDeviceIdentityLabel();
         String suffix = persistentDeviceUuid != null
                 ? persistentDeviceUuid
                 : UUID.randomUUID().toString().substring(0, 8);
 
-        // Try to reuse existing identity first
-        TLSIdentity existing = TLSIdentity.getIdentity(Constants.IDENTITY_LABEL);
+        // Try to reuse existing identity for THIS device
+        TLSIdentity existing = TLSIdentity.getIdentity(label);
         if (existing != null) {
-            Log.i(TAG, "Reusing existing TLS identity");
+            Log.i(TAG, "Reusing existing TLS identity (label: " + label + ")");
             return existing;
         }
 
-        // Create new identity only if none exists
+        // Clean up any old identity under the generic label (from previous code versions)
+        TLSIdentity.deleteIdentity(Constants.IDENTITY_LABEL);
+
         Map<String, String> attrs = new HashMap<>();
         attrs.put(TLSIdentity.CERT_ATTRIBUTE_COMMON_NAME,
                 "KitchenSync-" + Build.MODEL + "-" + suffix);
@@ -266,20 +310,20 @@ public class CouchbaseManager {
         keyUsages.add(KeyUsage.SERVER_AUTH);
 
         TLSIdentity identity = TLSIdentity.createIdentity(
-                keyUsages, attrs, cal.getTime(), Constants.IDENTITY_LABEL);
-        Log.i(TAG, "Created TLS identity: KitchenSync-" + Build.MODEL + "-" + suffix);
+                keyUsages, attrs, cal.getTime(), label);
+        Log.i(TAG, "Created TLS identity: KitchenSync-" + Build.MODEL + "-" + suffix
+                + " (label: " + label + ")");
         return identity;
     }
 
     /**
-     * Discovery boost: if no peers are found within DISCOVERY_BOOST_DELAY_MS,
-     * stop and restart the replicator to force a fresh DNS-SD announcement.
-     * This handles cases where the initial mDNS advertisement was missed.
+     * Discovery boost: if no peers found within DISCOVERY_BOOST_DELAY_MS,
+     * tear down old replicator and create a new one for fresh mDNS announcement.
      */
     private void scheduleDiscoveryBoost() {
         mainHandler.postDelayed(() -> {
-            if (peerFound.get() || replicator == null) {
-                Log.i(TAG, "Discovery boost: peers already found, skipping");
+            if (peerFound.get() || replicator == null || intentionallyStopped.get()) {
+                Log.i(TAG, "Discovery boost: peers already found or stopped, skipping");
                 return;
             }
 
@@ -291,22 +335,18 @@ public class CouchbaseManager {
             boostAttempts++;
             Log.i(TAG, "Discovery boost #" + boostAttempts
                     + ": no peers found after " + DISCOVERY_BOOST_DELAY_MS
-                    + "ms, restarting replicator to force fresh mDNS announcement");
+                    + "ms, creating new replicator for fresh mDNS announcement");
 
-            // Stop and restart to force a new DNS-SD advertisement cycle
             executor.execute(() -> {
                 try {
-                    if (replicator != null) {
-                        replicator.stop();
-                        Log.i(TAG, "Discovery boost: replicator stopped");
-                        // Brief pause to let mDNS clean up
-                        Thread.sleep(500);
-                        replicator.start();
-                        Log.i(TAG, "Discovery boost: replicator restarted");
-                        // Schedule another check
-                        mainHandler.postDelayed(() -> scheduleDiscoveryBoost(),
-                                DISCOVERY_BOOST_DELAY_MS);
-                    }
+                    boostInProgress.set(true);
+                    tearDownReplicator();
+                    Thread.sleep(500);
+                    createAndStartReplicator();
+                    boostInProgress.set(false);
+                    Log.i(TAG, "Discovery boost: new replicator started. PeerId: " + currentPeerId);
+                    mainHandler.postDelayed(() -> scheduleDiscoveryBoost(),
+                            DISCOVERY_BOOST_DELAY_MS);
                 } catch (Exception e) {
                     Log.e(TAG, "Discovery boost failed", e);
                 }
@@ -314,16 +354,55 @@ public class CouchbaseManager {
         }, DISCOVERY_BOOST_DELAY_MS);
     }
 
+    /**
+     * Auto-recovery: if the replicator goes inactive unexpectedly (not from
+     * intentional stop), automatically create a new one to restore P2P.
+     * Handles cases like a peer emulator being killed and restarted.
+     */
+    private void scheduleAutoRecovery() {
+        mainHandler.postDelayed(() -> {
+            if (intentionallyStopped.get() || collection == null) {
+                return;
+            }
+
+            // Check if replicator is dead or null
+            if (replicator == null) {
+                Log.i(TAG, "Auto-recovery: replicator is null, recreating");
+                executor.execute(() -> {
+                    try {
+                        createAndStartReplicator();
+                        peerFound.set(false);
+                        boostAttempts = 0;
+                        scheduleDiscoveryBoost();
+                        Log.i(TAG, "Auto-recovery: new replicator started. PeerId: " + currentPeerId);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Auto-recovery failed, will retry", e);
+                        scheduleAutoRecovery();
+                    }
+                });
+            }
+        }, AUTO_RECOVERY_DELAY_MS);
+    }
+
     private void registerListeners() {
         PeerEventBus bus = PeerEventBus.getInstance();
 
-        // Replicator status
+        // Replicator status -- includes auto-recovery on unexpected inactive
         ListenerToken statusToken = replicator.addStatusListener(status -> {
             boolean active = status.isActive();
             String error = status.getError() != null ? status.getError().getMessage() : null;
             Log.i(TAG, "Replicator status: " + (active ? "active" : "inactive") +
                     (error != null ? ", error: " + error : ""));
             bus.fireReplicatorStatus(active, error);
+
+            // Auto-recovery: if replicator went inactive and we didn't stop it on purpose
+            // and we're not in the middle of a discovery boost cycle
+            if (!active && !intentionallyStopped.get() && !boostInProgress.get()) {
+                Log.w(TAG, "Replicator went inactive unexpectedly -- scheduling auto-recovery");
+                // Null out the dead replicator so auto-recovery creates a new one
+                replicator = null;
+                scheduleAutoRecovery();
+            }
         });
         listenerTokens.add(statusToken);
 
@@ -333,7 +412,7 @@ public class CouchbaseManager {
             boolean online = status.isOnline();
             Log.i(TAG, "Peer " + (online ? "discovered" : "lost") + ": " + peerId);
             if (online) {
-                peerFound.set(true);  // Cancel discovery boost
+                peerFound.set(true);
             }
             bus.firePeerDiscovered(peerId, online);
         });
