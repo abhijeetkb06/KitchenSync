@@ -1,11 +1,15 @@
 package com.kitchensync.data;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+
+import androidx.core.content.ContextCompat;
 
 import com.couchbase.lite.Collection;
 import com.couchbase.lite.CouchbaseLiteException;
@@ -26,6 +30,7 @@ import com.couchbase.lite.logging.ConsoleLogSink;
 import com.couchbase.lite.logging.LogSinks;
 
 import com.kitchensync.data.model.DeviceRole;
+import com.kitchensync.service.P2PSyncService;
 import com.kitchensync.util.Constants;
 
 import java.util.ArrayList;
@@ -36,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,9 +50,10 @@ public class CouchbaseManager {
     private static final String TAG = "CouchbaseManager";
     private static final String PREFS_NAME = "kitchensync_prefs";
     private static final String PREF_DEVICE_UUID = "device_uuid";
-    private static final long DISCOVERY_BOOST_DELAY_MS = 3000;
+    private static final long DISCOVERY_BOOST_DELAY_MS = 5000;
+    private static final long DISCOVERY_BOOST_JITTER_MS = 3000;
     private static final long AUTO_RECOVERY_DELAY_MS = 2000;
-    private static final int MAX_BOOST_ATTEMPTS = 2;
+    private static final int MAX_BOOST_ATTEMPTS = 3;
 
     private static CouchbaseManager instance;
 
@@ -61,10 +68,12 @@ public class CouchbaseManager {
     private final AtomicBoolean peerFound = new AtomicBoolean(false);
     private final AtomicBoolean intentionallyStopped = new AtomicBoolean(false);
     private final AtomicBoolean boostInProgress = new AtomicBoolean(false);
+    private final Random random = new Random();
     private int boostAttempts = 0;
     private volatile TLSIdentity cachedIdentity;
     private volatile boolean preWarmDone = false;
     private String persistentDeviceUuid;
+    private WifiManager.MulticastLock multicastLock;
 
     private CouchbaseManager() {}
 
@@ -109,8 +118,8 @@ public class CouchbaseManager {
     public void openDatabase() throws CouchbaseLiteException {
         if (database != null) return;
 
-        LogSinks.get().setConsole(new ConsoleLogSink(
-                LogLevel.VERBOSE, LogDomain.REPLICATOR, LogDomain.NETWORK));
+        LogSinks.get().setConsole(new ConsoleLogSink(LogLevel.VERBOSE,
+                LogDomain.REPLICATOR, LogDomain.NETWORK));
 
         DatabaseConfiguration config = new DatabaseConfiguration();
         database = new Database(Constants.DATABASE_NAME, config);
@@ -143,8 +152,12 @@ public class CouchbaseManager {
         }
 
         intentionallyStopped.set(false);
+        acquireMulticastLock();
         createAndStartReplicator();
         Log.i(TAG, "MultipeerReplicator started EARLY. PeerId: " + currentPeerId);
+        // Start foreground service AFTER replicator is running to avoid
+        // any race condition with the OS process priority change
+        startForegroundService();
 
         // Schedule discovery boost
         peerFound.set(false);
@@ -174,7 +187,18 @@ public class CouchbaseManager {
      */
     public void refreshPeerSync() {
         if (intentionallyStopped.get() || collection == null) return;
-        Log.i(TAG, "Manual peer sync refresh requested");
+
+        // If we already have active peer connections, skip the destructive
+        // teardown.  On Android 16 the built-in mDNS responder loses the
+        // ability to send multicast after the initial app-launch burst, so
+        // tearing down an active replicator means we can never rediscover
+        // peers without a full app restart.
+        if (!getNeighborPeers().isEmpty()) {
+            Log.i(TAG, "Refresh requested but peers are connected -- skipping teardown");
+            return;
+        }
+
+        Log.i(TAG, "Manual peer sync refresh requested (no active peers)");
         executor.execute(() -> {
             try {
                 boostInProgress.set(true);
@@ -196,6 +220,8 @@ public class CouchbaseManager {
     public void stopPeerSync() {
         intentionallyStopped.set(true);
         tearDownReplicator();
+        releaseMulticastLock();
+        stopForegroundService();
     }
 
     public void close() {
@@ -296,6 +322,54 @@ public class CouchbaseManager {
     // --- Private helpers ---
 
     /**
+     * Acquire a WiFi MulticastLock to prevent the WiFi driver from filtering
+     * out multicast packets.  Without this lock, Android power-saves by
+     * dropping multicast after a brief active window -- which is exactly why
+     * mDNS discovery works on first launch but fails seconds later or after
+     * the phone goes idle / the app is backgrounded.
+     */
+    private void acquireMulticastLock() {
+        try {
+            WifiManager wifi = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+
+            if (multicastLock == null || !multicastLock.isHeld()) {
+                multicastLock = wifi.createMulticastLock("KitchenSync_mDNS");
+                multicastLock.setReferenceCounted(false);
+                multicastLock.acquire();
+                Log.i(TAG, "MulticastLock acquired");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to acquire MulticastLock", e);
+        }
+    }
+
+    private void releaseMulticastLock() {
+        if (multicastLock != null && multicastLock.isHeld()) {
+            multicastLock.release();
+            Log.i(TAG, "MulticastLock released");
+        }
+    }
+
+    private void startForegroundService() {
+        try {
+            Intent intent = new Intent(context, P2PSyncService.class);
+            ContextCompat.startForegroundService(context, intent);
+            Log.i(TAG, "Foreground service started");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to start foreground service", e);
+        }
+    }
+
+    private void stopForegroundService() {
+        try {
+            context.stopService(new Intent(context, P2PSyncService.class));
+            Log.i(TAG, "Foreground service stopped");
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to stop foreground service", e);
+        }
+    }
+
+    /**
      * Returns the device-unique identity label. Each device gets its own
      * Keystore entry keyed by its persistent UUID, preventing PeerId collisions
      * across emulators/devices that share the same base system image.
@@ -344,11 +418,26 @@ public class CouchbaseManager {
     /**
      * Discovery boost: if no peers found within DISCOVERY_BOOST_DELAY_MS,
      * tear down old replicator and create a new one for fresh mDNS announcement.
+     * A random jitter is added to prevent multiple devices from boosting at the
+     * exact same time (which would cause both to be down simultaneously and miss
+     * each other's DNS-SD announcements).
      */
     private void scheduleDiscoveryBoost() {
+        long jitter = random.nextInt((int) DISCOVERY_BOOST_JITTER_MS);
+        long delay = DISCOVERY_BOOST_DELAY_MS + jitter;
         mainHandler.postDelayed(() -> {
             if (peerFound.get() || replicator == null || intentionallyStopped.get()) {
                 Log.i(TAG, "Discovery boost: peers already found or stopped, skipping");
+                return;
+            }
+
+            // Also check for active neighbor peers -- incoming connections may
+            // have arrived before the discovery listener fired (race condition
+            // observed on real devices where replicator status events precede
+            // peer discovery events).
+            if (!getNeighborPeers().isEmpty()) {
+                Log.i(TAG, "Discovery boost: active neighbor peers found, skipping teardown");
+                peerFound.set(true);
                 return;
             }
 
@@ -359,24 +448,24 @@ public class CouchbaseManager {
 
             boostAttempts++;
             Log.i(TAG, "Discovery boost #" + boostAttempts
-                    + ": no peers found after " + DISCOVERY_BOOST_DELAY_MS
+                    + ": no peers found after " + delay
                     + "ms, creating new replicator for fresh mDNS announcement");
 
             executor.execute(() -> {
                 try {
                     boostInProgress.set(true);
                     tearDownReplicator();
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                     createAndStartReplicator();
                     boostInProgress.set(false);
                     Log.i(TAG, "Discovery boost: new replicator started. PeerId: " + currentPeerId);
-                    mainHandler.postDelayed(() -> scheduleDiscoveryBoost(),
-                            DISCOVERY_BOOST_DELAY_MS);
+                    scheduleDiscoveryBoost();
                 } catch (Exception e) {
+                    boostInProgress.set(false);
                     Log.e(TAG, "Discovery boost failed", e);
                 }
             });
-        }, DISCOVERY_BOOST_DELAY_MS);
+        }, delay);
     }
 
     /**
@@ -452,6 +541,16 @@ public class CouchbaseManager {
                     ? status.getStatus().getError().getMessage() : null;
             Log.i(TAG, "Peer repl status: " + peerId + " " + activity +
                     (error != null ? " error: " + error : ""));
+
+            // Mark peer as found when any active replication is detected.
+            // On real devices, incoming peer replicator events can arrive before
+            // the peer discovery listener fires.  Without this, the discovery
+            // boost tears down the replicator while a connection is being
+            // established.
+            if (!"stopped".equals(activity)) {
+                peerFound.set(true);
+            }
+
             bus.firePeerReplicatorStatus(peerId, outgoing, activity, error);
         });
         listenerTokens.add(peerReplToken);

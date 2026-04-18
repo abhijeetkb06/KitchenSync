@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
         android:usesPermissionFlags="neverForLocation"
         tools:targetApi="33" />
@@ -36,6 +39,11 @@
         <activity
             android:name=".ui.main.MainActivity"
             android:theme="@style/Theme.KitchenSync.NoActionBar" />
+
+        <service
+            android:name=".service.P2PSyncService"
+            android:foregroundServiceType="connectedDevice"
+            android:exported="false" />
 
     </application>
 
