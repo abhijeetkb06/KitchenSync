@@ -25,6 +25,7 @@ import java.util.List;
 public class OrderStatusBoardFragment extends Fragment {
     private static final String TAG = "OrderStatusBoard";
 
+    private StatusBoardAdapter newAdapter;
     private StatusBoardAdapter preparingAdapter;
     private StatusBoardAdapter readyAdapter;
     private final OrderRepository orderRepo = new OrderRepository();
@@ -41,6 +42,11 @@ public class OrderStatusBoardFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        RecyclerView recyclerNew = view.findViewById(R.id.recycler_new);
+        newAdapter = new StatusBoardAdapter();
+        recyclerNew.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerNew.setAdapter(newAdapter);
 
         RecyclerView recyclerPreparing = view.findViewById(R.id.recycler_preparing);
         preparingAdapter = new StatusBoardAdapter();
@@ -84,12 +90,15 @@ public class OrderStatusBoardFragment extends Fragment {
     private void refreshBoard() {
         List<Order> activeOrders = orderRepo.getActiveOrders();
 
+        List<Order> newOrders = new ArrayList<>();
         List<Order> preparing = new ArrayList<>();
         List<Order> ready = new ArrayList<>();
 
         for (Order order : activeOrders) {
             switch (order.getStatus()) {
                 case Constants.ORDER_STATUS_NEW:
+                    newOrders.add(order);
+                    break;
                 case Constants.ORDER_STATUS_PREPARING:
                     preparing.add(order);
                     break;
@@ -99,6 +108,7 @@ public class OrderStatusBoardFragment extends Fragment {
             }
         }
 
+        newAdapter.setOrders(newOrders);
         preparingAdapter.setOrders(preparing);
         readyAdapter.setOrders(ready);
     }

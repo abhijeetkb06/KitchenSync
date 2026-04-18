@@ -17,12 +17,39 @@
         android:gravity="center"
         android:paddingVertical="@dimen/spacing_md" />
 
-    <!-- Two-column layout: Preparing | Ready for Pickup -->
+    <!-- Three-column layout: New | Preparing | Ready for Pickup -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:paddingHorizontal="@dimen/spacing_sm">
+
+        <!-- New Column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="@dimen/spacing_xs">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="New"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:gravity="center"
+                android:background="@color/syncing_blue"
+                android:paddingVertical="@dimen/spacing_sm" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_new"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingTop="@dimen/spacing_xs" />
+        </LinearLayout>
 
         <!-- Preparing Column -->
         <LinearLayout
@@ -30,7 +57,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginEnd="@dimen/spacing_xs">
+            android:layout_marginHorizontal="@dimen/spacing_xs">
 
             <TextView
                 android:layout_width="match_parent"
@@ -62,7 +89,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Ready for Pickup"
+                android:text="Ready"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/white"

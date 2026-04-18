@@ -10,9 +10,9 @@ Built to demonstrate how Couchbase Lite's P2P auto-discovery eliminates the need
 
 ## Screenshots
 
-| Role Selection | Kiosk (Self-Order) | Kitchen Display | Store Manager | P2P Mesh |
-|:-:|:-:|:-:|:-:|:-:|
-| ![Role Selection](screenshots/role_selection.png) | ![Kiosk View](screenshots/kiosk_view.png) | ![Kitchen View](screenshots/kitchen_view.png) | ![Manager View](screenshots/manager_view.png) | ![Peers View](screenshots/peers_view.png) |
+| Role Selection | Kiosk (Self-Order) | Status Board | Kitchen Display | Store Manager | P2P Mesh |
+|:-:|:-:|:-:|:-:|:-:|:-:|
+| ![Role Selection](screenshots/01_role_selection.png) | ![Kiosk Menu](screenshots/02_kiosk_menu.png) | ![Status Board](screenshots/03_status_board.png) | ![Kitchen Display](screenshots/04_kitchen.png) | ![Manager Dashboard](screenshots/05_manager.png) | ![P2P Peers](screenshots/06_peers.png) |
 
 ---
 
@@ -126,9 +126,9 @@ The MultipeerReplicator handles discovery, topology, security, and fault toleran
 |------|-------------|
 | **Kiosk** | Self-order station -- browse the Taco Bell menu, build a cart, enter customer name, place order |
 | **Kitchen** | Real-time Kitchen Display System (KDS) -- order cards with food images, tap through status: New > Preparing > Ready > Picked Up |
-| **Store Manager** | Dashboard with network status, order stats (New/Preparing/Ready/Picked Up), today's revenue, recent orders, and code spotlight |
-| **Status Board** | Customer-facing order status display with "Preparing" and "Ready for Pickup" columns |
-| **Peers** | Live P2P mesh visualization showing all connected devices and their roles |
+| **Store Manager** | Dashboard with network status, order stats (New/Preparing/Ready/Picked Up), today's revenue, and recent orders |
+| **Status Board** | Customer-facing order status display with three columns: New (blue), Preparing (orange), and Ready for Pickup (green) |
+| **Peers** | Live P2P mesh visualization showing all connected devices, their roles, and code spotlight |
 
 All views are accessible from any device via the 5-tab bottom navigation (Kiosk / Status / Kitchen / Manager / Peers), regardless of which role was selected at launch.
 
@@ -273,7 +273,7 @@ On each emulator:
 1. **Kiosk**: Browse the menu (Tacos, Burritos, Sides, Drinks), add items to cart, enter a customer name, tap "Place Order"
 2. **Kitchen**: Watch the order appear in real-time with food images -- tap "Start Preparing" > "Mark Ready" > "Picked Up"
 3. **Place another order for the same customer name** -- items are appended to the existing open order
-4. **Status Board tab**: See orders split into "Preparing" and "Ready for Pickup" columns
+4. **Status Board tab**: See orders flow through three columns -- "New" > "Preparing" > "Ready for Pickup"
 5. **Store Manager tab**: View dashboard with live order counts, today's revenue, and network status
 6. **Peers tab**: See the live P2P mesh network with all connected devices
 
@@ -388,6 +388,9 @@ replicator.start();  // That's it -- devices auto-discover and sync
 | `ACCESS_NETWORK_STATE` | Detect network connectivity |
 | `ACCESS_WIFI_STATE` | WiFi network info for discovery |
 | `CHANGE_WIFI_MULTICAST_STATE` | Enable multicast for DNS-SD discovery |
+| `FOREGROUND_SERVICE` | Keep P2P sync alive when app is in background |
+| `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Android 14+ foreground service type for P2P |
+| `WAKE_LOCK` | Prevent CPU sleep during active sync |
 | `NEARBY_WIFI_DEVICES` | Android 13+ WiFi peer discovery |
 | `ACCESS_FINE_LOCATION` | Required for WiFi scanning on Android 10-12 |
 | `ACCESS_COARSE_LOCATION` | Required for WiFi scanning on Android 10-12 |

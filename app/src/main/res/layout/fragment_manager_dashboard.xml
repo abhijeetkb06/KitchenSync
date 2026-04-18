@@ -281,49 +281,5 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Code Spotlight Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            app:cardBackgroundColor="#1A237E">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/code_spotlight"
-                    android:textColor="@color/white"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:text="This entire P2P mesh is powered by ~5 lines:"
-                    android:textColor="#AAFFFFFF"
-                    android:textSize="13sp" />
-
-                <TextView
-                    android:id="@+id/text_code_snippet"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
-                    android:background="#15FFFFFF"
-                    android:fontFamily="monospace"
-                    android:padding="@dimen/spacing_md"
-                    android:textColor="#E0E0E0"
-                    android:textSize="11sp"
-                    android:text="@string/code_snippet_text" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
     </LinearLayout>
 </ScrollView>

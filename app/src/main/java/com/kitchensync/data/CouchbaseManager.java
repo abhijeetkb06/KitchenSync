@@ -50,10 +50,11 @@ public class CouchbaseManager {
     private static final String TAG = "CouchbaseManager";
     private static final String PREFS_NAME = "kitchensync_prefs";
     private static final String PREF_DEVICE_UUID = "device_uuid";
-    private static final long DISCOVERY_BOOST_DELAY_MS = 5000;
-    private static final long DISCOVERY_BOOST_JITTER_MS = 3000;
+    private static final long DISCOVERY_BOOST_FAST_MS = 3000;
+    private static final long DISCOVERY_BOOST_SLOW_MS = 12000;
+    private static final long DISCOVERY_BOOST_JITTER_MS = 2000;
     private static final long AUTO_RECOVERY_DELAY_MS = 2000;
-    private static final int MAX_BOOST_ATTEMPTS = 3;
+    private static final int FAST_BOOST_ATTEMPTS = 4;
 
     private static CouchbaseManager instance;
 
@@ -179,42 +180,6 @@ public class CouchbaseManager {
     public void startPeerSync(String deviceName, DeviceRole role) throws Exception {
         startPeerSyncEarly();
         writeDeviceDocument(deviceName, role);
-    }
-
-    /**
-     * Manual refresh: tear down current replicator and create a fresh one.
-     * Forces a new mDNS broadcast + browse cycle to rediscover peers.
-     */
-    public void refreshPeerSync() {
-        if (intentionallyStopped.get() || collection == null) return;
-
-        // If we already have active peer connections, skip the destructive
-        // teardown.  On Android 16 the built-in mDNS responder loses the
-        // ability to send multicast after the initial app-launch burst, so
-        // tearing down an active replicator means we can never rediscover
-        // peers without a full app restart.
-        if (!getNeighborPeers().isEmpty()) {
-            Log.i(TAG, "Refresh requested but peers are connected -- skipping teardown");
-            return;
-        }
-
-        Log.i(TAG, "Manual peer sync refresh requested (no active peers)");
-        executor.execute(() -> {
-            try {
-                boostInProgress.set(true);
-                tearDownReplicator();
-                Thread.sleep(500);
-                createAndStartReplicator();
-                boostInProgress.set(false);
-                peerFound.set(false);
-                boostAttempts = 0;
-                scheduleDiscoveryBoost();
-                Log.i(TAG, "Peer sync refreshed. PeerId: " + currentPeerId);
-            } catch (Exception e) {
-                boostInProgress.set(false);
-                Log.e(TAG, "Peer sync refresh failed", e);
-            }
-        });
     }
 
     public void stopPeerSync() {
@@ -416,15 +381,25 @@ public class CouchbaseManager {
     }
 
     /**
-     * Discovery boost: if no peers found within DISCOVERY_BOOST_DELAY_MS,
-     * tear down old replicator and create a new one for fresh mDNS announcement.
+     * Discovery boost: if no peers found, tear down old replicator and create
+     * a new one for fresh mDNS announcement.
+     *
+     * Two phases:
+     *   Fast phase (first FAST_BOOST_ATTEMPTS): every 3-5 s  -- covers normal WiFi
+     *   Slow phase (unlimited):                 every 12-14 s -- covers hotspot /
+     *       unreliable multicast environments where mDNS packets are frequently
+     *       dropped.  Keeps retrying until a peer is found or sync is stopped.
+     *
      * A random jitter is added to prevent multiple devices from boosting at the
      * exact same time (which would cause both to be down simultaneously and miss
      * each other's DNS-SD announcements).
      */
     private void scheduleDiscoveryBoost() {
+        long baseDelay = boostAttempts < FAST_BOOST_ATTEMPTS
+                ? DISCOVERY_BOOST_FAST_MS
+                : DISCOVERY_BOOST_SLOW_MS;
         long jitter = random.nextInt((int) DISCOVERY_BOOST_JITTER_MS);
-        long delay = DISCOVERY_BOOST_DELAY_MS + jitter;
+        long delay = baseDelay + jitter;
         mainHandler.postDelayed(() -> {
             if (peerFound.get() || replicator == null || intentionallyStopped.get()) {
                 Log.i(TAG, "Discovery boost: peers already found or stopped, skipping");
@@ -441,14 +416,10 @@ public class CouchbaseManager {
                 return;
             }
 
-            if (boostAttempts >= MAX_BOOST_ATTEMPTS) {
-                Log.i(TAG, "Discovery boost: max attempts reached, relying on normal discovery");
-                return;
-            }
-
             boostAttempts++;
-            Log.i(TAG, "Discovery boost #" + boostAttempts
-                    + ": no peers found after " + delay
+            String phase = boostAttempts <= FAST_BOOST_ATTEMPTS ? "fast" : "slow";
+            Log.i(TAG, "Discovery boost #" + boostAttempts + " (" + phase
+                    + "): no peers found after " + delay
                     + "ms, creating new replicator for fresh mDNS announcement");
 
             executor.execute(() -> {

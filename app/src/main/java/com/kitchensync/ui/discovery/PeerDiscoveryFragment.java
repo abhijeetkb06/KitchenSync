@@ -5,9 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,9 +28,6 @@ public class PeerDiscoveryFragment extends Fragment implements PeerEventBus.Peer
     private TextView textStatus;
     private TextView textPeerCount;
     private View statusIndicator;
-    private ImageButton btnRefresh;
-    private long lastRefreshTime = 0;
-    private static final long REFRESH_COOLDOWN_MS = 5000;
 
     @Nullable
     @Override
@@ -57,34 +52,8 @@ public class PeerDiscoveryFragment extends Fragment implements PeerEventBus.Peer
 
         meshView.setDeviceInfo("This Device", "");
 
-        // Refresh button
-        btnRefresh = view.findViewById(R.id.btn_refresh_peers);
-        btnRefresh.setOnClickListener(v -> onRefreshClicked());
-
         // Load existing peers
         loadExistingPeers();
-    }
-
-    private void onRefreshClicked() {
-        long now = System.currentTimeMillis();
-        if (now - lastRefreshTime < REFRESH_COOLDOWN_MS) {
-            Toast.makeText(requireContext(),
-                    "Please wait a few seconds before refreshing again",
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        lastRefreshTime = now;
-
-        // Clear UI -- peers will reappear via onPeerDiscovered callbacks
-        meshView.clearPeers();
-        listAdapter.clear();
-        textStatus.setText(getString(R.string.refreshing_peers));
-        textPeerCount.setText("");
-        setIndicatorColor(R.color.ks_amber);
-
-        CouchbaseManager.getInstance().refreshPeerSync();
-        Toast.makeText(requireContext(),
-                getString(R.string.refreshing_peers), Toast.LENGTH_SHORT).show();
     }
 
     @Override

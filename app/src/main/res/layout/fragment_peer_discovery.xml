@@ -50,16 +50,6 @@
             android:textColor="@color/syncing_blue"
             android:textSize="14sp"
             android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/btn_refresh_peers"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/refresh_peers"
-            android:src="@android:drawable/ic_menu_rotate"
-            app:tint="@color/on_surface_secondary" />
     </LinearLayout>
 
     <!-- Peer List -->
@@ -70,5 +60,51 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:padding="@dimen/spacing_sm" />
+
+    <!-- Code Spotlight Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginBottom="@dimen/spacing_sm"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="#1A237E">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/code_spotlight"
+                android:textColor="@color/white"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="This entire P2P mesh is powered by ~5 lines:"
+                android:textColor="#AAFFFFFF"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/text_code_snippet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:background="#15FFFFFF"
+                android:fontFamily="monospace"
+                android:padding="@dimen/spacing_md"
+                android:textColor="#E0E0E0"
+                android:textSize="11sp"
+                android:text="@string/code_snippet_text" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>
