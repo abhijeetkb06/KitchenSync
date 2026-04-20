@@ -18,7 +18,7 @@ Built to demonstrate how Couchbase Lite's P2P auto-discovery eliminates the need
 
 ## What This Demonstrates
 
-- **Automatic Device Discovery** -- Devices find each other via DNS-SD (Android NSD) with zero configuration
+- **Automatic Device Discovery** -- Devices find each other via DNS-SD with zero configuration
 - **Real-Time P2P Sync** -- Orders sync instantly across all connected devices using MultipeerReplicator
 - **Mesh Network** -- Every device syncs with every other device, no single point of failure
 - **TLS Security** -- All peer communication is encrypted with self-signed certificates
@@ -82,7 +82,7 @@ replicator.start();  // Done. Devices auto-discover and form a mesh.
 
 | Responsibility | Old (URLEndpointListener) | New (MultipeerReplicator) |
 |---|---|---|
-| **Device Discovery** | Write NSD browse/register code manually | Automatic via DNS-SD (Android NSD) |
+| **Device Discovery** | Write NSD browse/register code manually | Automatic via DNS-SD |
 | **IP/Port Management** | Resolve, track, and update peer addresses | Handled internally |
 | **URL Construction** | Build `wss://ip:port/db` per peer | No URLs -- peer group ID only |
 | **Topology** | Star only (1 listener, N clients) | Self-organizing mesh (all peers equal) |
