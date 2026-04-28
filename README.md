@@ -205,38 +205,31 @@ Or install via Android Studio SDK Manager under **SDK Platforms > Android 14 > G
 Create three emulators representing different QSR devices:
 
 ```bash
-# Using cmdline-tools (adjust path to your SDK)
-AVDMANAGER=$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager
-
-# Kiosk Phone (Pixel 5)
-$AVDMANAGER create avd -n "KitchenSync_Kiosk" \
+avdmanager create avd -n "KS_Kiosk_Phone" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
-  -d "pixel_5" --force <<< "no"
+  -d "pixel_4" --force <<< "no"
 
-# Kitchen Tablet (Pixel C)
-$AVDMANAGER create avd -n "KitchenSync_Kitchen_Tablet" \
+avdmanager create avd -n "KS_Kitchen_Tablet" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
-  -d "pixel_c" --force <<< "no"
+  -d "Nexus 9" --force <<< "no"
 
-# Manager Phone (Pixel 5)
-$AVDMANAGER create avd -n "KitchenSync_Manager" \
+avdmanager create avd -n "KS_Manager_Phone" \
   -k "system-images;android-34;google_apis;arm64-v8a" \
-  -d "pixel_5" --force <<< "no"
+  -d "pixel_4" --force <<< "no"
 ```
 
 Or create them via **Android Studio > Device Manager > Create Device**.
 
-### 5. Launch All 3 Emulators
+### 5. Launch, Install, and Start
+
+Use the included demo script to launch all 3 emulators, wait for boot, and start the app:
 
 ```bash
-emulator -avd KitchenSync_Kiosk -no-snapshot-load -no-audio &
-sleep 5
-emulator -avd KitchenSync_Kitchen_Tablet -no-snapshot-load -no-audio &
-sleep 5
-emulator -avd KitchenSync_Manager -no-snapshot-load -no-audio &
+./launch_demo.sh
 ```
 
-Wait for all 3 to boot. Verify they're online:
+This launches `KS_Kiosk_Phone`, `KS_Kitchen_Tablet`, and `KS_Manager_Phone`, waits for them to boot, then opens the app on all 3. Verify they're online:
+
 ```bash
 adb devices
 # Should show:
@@ -245,30 +238,19 @@ adb devices
 # emulator-5558  device
 ```
 
-### 6. Install the App on All 3 Emulators
-
+To stop all emulators:
 ```bash
-adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
-adb -s emulator-5556 install -r app/build/outputs/apk/debug/app-debug.apk
-adb -s emulator-5558 install -r app/build/outputs/apk/debug/app-debug.apk
+./kill_emulators.sh
 ```
 
-### 7. Launch the App
-
-```bash
-for emu in emulator-5554 emulator-5556 emulator-5558; do
-  adb -s $emu shell am start -n com.kitchensync/.ui.roleselection.RoleSelectionActivity
-done
-```
-
-### 8. Select Roles and Grant Permissions
+### 6. Select Roles and Grant Permissions
 
 On each emulator:
 1. Select a role (Kiosk / Kitchen / Store Manager)
 2. Tap **"While using the app"** when prompted for location permission
 3. The devices will auto-discover each other -- you'll see "N peers connected" in the toolbar
 
-### 9. Test the Flow
+### 7. Test the Flow
 
 1. **Kiosk**: Browse the menu (Tacos, Burritos, Sides, Drinks), add items to cart, enter a customer name, tap "Place Order"
 2. **Kitchen**: Watch the order appear in real-time with food images -- tap "Start Preparing" > "Mark Ready" > "Picked Up"
@@ -276,6 +258,25 @@ On each emulator:
 4. **Status Board tab**: See orders flow through three columns -- "New" > "Preparing" > "Ready for Pickup"
 5. **Store Manager tab**: View dashboard with live order counts, today's revenue, and network status
 6. **Peers tab**: See the live P2P mesh network with all connected devices
+
+---
+
+## CBLite Browser (Database Viewer)
+
+Inspect the Couchbase Lite databases on your running emulators with a Capella-style browser UI:
+
+```bash
+./launch_cblite_browser.sh
+```
+
+This auto-detects the app package (`applicationId` from `app/build.gradle`) and database name (`DATABASE_NAME` from source code), clones the [cblite-browser](https://github.com/abhijeetkb06/cblite-browser) tool on first run, and opens a live document viewer at `http://localhost:8091`.
+
+**Prerequisites:** `cblite` CLI (`brew tap couchbase/tap && brew install cblite`), Python 3, running emulators with the app installed.
+
+**Features:**
+- Capella-style UI with scope/collection tree, document table, and JSON/Metadata modal
+- Auto-refreshes from emulators every 3 seconds
+- Shows version vectors for each document
 
 ---
 
@@ -388,6 +389,16 @@ replicator.start();  // That's it -- devices auto-discover and sync
 
 ---
 
+## Included Scripts
+
+| Script | Description |
+|--------|-------------|
+| `launch_demo.sh` | Launches 3 emulator AVDs, waits for boot, and starts the app on all |
+| `kill_emulators.sh` | Kills all running Android emulators |
+| `launch_cblite_browser.sh` | Auto-detects app config, launches the [CBLite Browser](https://github.com/abhijeetkb06/cblite-browser) document viewer |
+
+---
+
 ## Useful ADB Commands
 
 ```bash
@@ -402,7 +413,7 @@ for emu in emulator-5554 emulator-5556 emulator-5558; do
 done
 
 # Kill all emulators
-pkill -9 -f "emulator.*avd"
+./kill_emulators.sh
 
 # View Couchbase P2P logs
 adb -s emulator-5554 logcat -s CouchbaseManager CouchbaseLite/REPLICATOR CouchbaseLite/NETWORK
